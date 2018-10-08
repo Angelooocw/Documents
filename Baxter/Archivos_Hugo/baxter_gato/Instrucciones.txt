@@ -1,0 +1,9 @@
+Para guardar nuevas posiciones de la fila y la mesa.
+ - Correr configurador gato y descomentar la seccion del main que permite guardar posiciones
+y guardar las posiciones que quedan en posiciones.py en el archivo de servidor gato.
+
+
+Para jugar.
+ - Abrir servidor gato, jugador1 y jugador2 simultaneamente. 
+ - Poner el nombre del jugador que va a comenzar
+ - seguir las instrucciones
