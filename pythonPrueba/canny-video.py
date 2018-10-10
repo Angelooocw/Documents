@@ -25,7 +25,12 @@ while (True):
 	canny = cv2.Canny(blur, 50, 150)
 	cv2.imshow("canny",canny)
 	#deteccion de contornos
-	(_,contornos,_) = cv2.findContours(canny,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+	#opencv 3
+	#(_,contornos,_) = cv2.findContours(canny,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+	
+	#opencv 2
+	(contornos,_) = cv2.findContours(canny,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+
 
 	#Dibujar contornos sobre video
 	for c in contornos:

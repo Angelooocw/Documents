@@ -19,18 +19,21 @@ def prediccion(file):
 	resultado=arreglo[0]
 	respuesta=np.argmax(resultado)
 
-#('indices= ', {'cats': 1, 'birds': 0, 'dogs': 2})
+#('indices= ', {'gato': 0, 'gorila': 1, 'pajaro': 2, 'perro': 3})
 	
 	
 	if respuesta==0:
 		print resultado
-		print 'Perro'
+		print 'Gato'
 	elif respuesta==1:
 		print resultado
-		print 'Gato'
+		print 'Gorila'
 	elif respuesta==2:
 		print resultado
 		print 'Pajaro'
+	elif respuesta==3:
+		print resultado
+		print 'Perro'
 	return respuesta
 
-prediccion('hij.jpeg')
+prediccion('p12.jpg')

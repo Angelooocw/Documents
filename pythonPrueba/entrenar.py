@@ -13,19 +13,19 @@ data_entrenamiento='CNN_Data2/training_set'
 data_validacion='CNN_Data2/test_set'
 
 ##Parametros
-#epocas=20
-epocas=2
+epocas=20
+#epocas=2
 altura, longitud = 100, 100
 batch_size=32
-#pasos=1000
-pasos=100
+pasos=1000
+#pasos=100
 pasos_validacion=200
 filtrosConv1=32
 filtrosConv2=64
 tamano_filtro1=(3,3)
 tamano_filtro2=(2,2)
 tamano_pool=(2,2)
-clases=3
+clases=4
 lr=0.0005
 
 ##Pre procesamiento de imagenes
