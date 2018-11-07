@@ -102,16 +102,21 @@ cnn.add(Dense(clases,activation='softmax'))"""
 cnn=Sequential()
 cnn.add(Convolution2D(filtrosConv1,tamano_filtro1,input_shape=input_shape,padding='same',activation='relu'))
 cnn.add(Convolution2D(filtrosConv1,tamano_filtro1,activation='relu',padding='same'))
+
 cnn.add(MaxPooling2D(pool_size=tamano_pool, strides=(2,2)))
+cnn.add(Dropout(0.5))
 #cnn.add(Dropout(0.25))
 
 cnn.add(Convolution2D(filtrosConv2,tamano_filtro1,input_shape=input_shape,padding='same',activation='relu'))
 cnn.add(Convolution2D(filtrosConv2,tamano_filtro1,activation='relu',padding='same'))
+
 cnn.add(MaxPooling2D(pool_size=tamano_pool, strides=(2,2)))
+cnn.add(Dropout(0.5))
 #cnn.add(Dropout(0.25))
 
 cnn.add(Convolution2D(filtrosConv2,tamano_filtro1,input_shape=input_shape,padding='same',activation='relu'))
 cnn.add(Convolution2D(filtrosConv2,tamano_filtro1,activation='relu',padding='same'))
+
 cnn.add(MaxPooling2D(pool_size=tamano_pool, strides=(2,2)))
 #cnn.add(Dropout(0.25))
 
