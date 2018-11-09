@@ -1,7 +1,10 @@
 import numpy as np
 import cv2
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 from keras.preprocessing.image import load_img, img_to_array
 from keras.models import load_model
+from math import hypot
 
 ####Guardado en Drive
 
@@ -14,8 +17,8 @@ cv2.imshow("original",original)
 #8l-rmsprop-32-20epochs-2000img y 8l-rmsprop-32-25epochs-2000img
 longitud, altura = 100,100
 tamano_deseado = 100
-modelo='./modelo/modelo-32b-20e-2000.h5'
-pesos='./modelo/pesos-32b-20e-2000.h5'
+modelo='./modelo/modelo-32b-25e-2000-corregido-rms.h5'
+pesos='./modelo/pesos-32b-25e-2000-corregido-rms.h5'
 cnn=load_model(modelo)
 cnn.load_weights(pesos)
 
@@ -110,7 +113,7 @@ def prediccion(file):
 	elif respuesta==9:
 		herramienta='Taladro'
 	elif respuesta==10:
-		herramienta='Telefono'
+		herramienta='Tijera'
 	return herramienta
 ######
 
@@ -219,6 +222,8 @@ j=0
 for c in contornos:
 	area=cv2.contourArea(c)
 	x,y,w,h=cv2.boundingRect(c)
+	
+
 	area=w*h
 	print area
 	if area <=50 :
@@ -226,7 +231,59 @@ for c in contornos:
 	
 	cv2.rectangle(original,(x,y),(x+w,y+h),(0,255,0),2)
 	cv2.putText(original,nombre[j],(x,y),cv2.FONT_HERSHEY_SIMPLEX,0.4,np.array([0,0,0],dtype=np.uint8).tolist(),1,8)
+	#
+	rect = cv2.minAreaRect(c)
+	box = cv2.cv.BoxPoints(rect)
+	box = np.int0(box)
+	#
+	print box
+	cv2.drawContours(original,[box],0,(0,0,255),2)
+
+	##Puntos rectangulo minimo, se toma como primer punto el que este mas abajo en el eje y
+	##luego los siguientes se toman en el sentido de las agujas del reloj
+	xb1,yb1=box[0][0],box[0][1]
+	xb2,yb2=box[1][0],box[1][1]
+	xb3,yb3=box[2][0],box[2][1]
+
+	dist1=hypot(xb2-xb1,yb2-yb1)
+	dist2=hypot(xb3-xb2,yb3-yb2)
+
+
+	if dist1<=dist2:
+		xbb1,ybb1=xb1,yb1
+		xbb2,ybb2=xb2,yb2
+		#punto medio en el lado mas largo
+		xcl,ycl=(xb2+xb3)/2,(yb2+yb3)/2
+		dist=dist1
+
+	else:
+		xbb1,ybb1=xb2,yb2
+		xbb2,ybb2=xb3,yb3
+		#punto medio en el lado mas largo
+		xcl,ycl=(xb1+xb2)/2,(yb1+yb2)/2
+		dist=dist2
+		
+
+	mm=(ybb2-ybb1)/(xbb2-xbb1)
+
+	#Punto medio en el lado mas corto
+	xcs=(xbb1+xbb2)/2
+	ycs=(ybb1+ybb2)/2
 	
+	#Punto medio en el rectangulo de area minima
+	xcentral=xcl+xcs-xb2
+	ycentral=ycl+ycs-yb2
+
+	cv2.circle(original,(xcentral,ycentral),6,(255,0,255),-1)
+
+
+	#circulo en el lado mas corto
+	cv2.circle(original,(xcs,ycs),6,(0,255,0),-1)
+
+	#cv2.line(original,(xbm,ybm),(xc,yc),(0,255,0),5)
+
+	print yb3
+
 	j=j+1
 
 	###Dibuja rectangulo con area minima del contorno
@@ -267,6 +324,9 @@ for i,nom in enumerate(nombre):
 	cv2.imshow(str(i)+str(nom),imagenes[i])
 
 cv2.imshow("Prediccion",original)
+
+plt.imshow(original)
+plt.show()
 
 #prediccion(crop2)
 #prediccion(crop)

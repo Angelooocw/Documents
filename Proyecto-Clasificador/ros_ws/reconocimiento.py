@@ -15,9 +15,9 @@ from keras.preprocessing.image import load_img, img_to_array
 from keras.models import load_model
 
 #cargar modelo entrenado
-longitud, altura = 150,150
-modelo='./modelo/modelo-32b-25e-2000.h5'
-pesos='./modelo/pesos-32b-25e-2000.h5'
+longitud, altura = 100,100
+modelo='./modelo/modelo-32b-20e-2000.h5'
+pesos='./modelo/pesos-32b-20e-2000.h5'
 cnn=load_model(modelo)
 cnn.load_weights(pesos)
 
@@ -28,8 +28,10 @@ def prediccion(file):
 	#x = load_img(file,target_size=(longitud,altura))
 	#x = img_to_array(x)
 	#x = np.expand_dims(x,axis=0)
+	####Esta transformacion se hace para eliminar un canal a la imagen (imagen = (100,100,4))
 	z=cv2.cvtColor(file, cv2.COLOR_BGR2GRAY)
 	y=cv2.cvtColor(z, cv2.COLOR_GRAY2BGR)
+	####
 	x=cv2.resize(y,(longitud,altura))
 	x=img_to_array(x)
 	x=np.expand_dims(x,axis=0)
@@ -89,8 +91,8 @@ gripper = baxter_interface.Gripper(arm)
 gripper.calibrate()
 # Pose inicial
 x = 0.6
-y = -0.3
-z = -0.1 
+y = 0.3
+z = 0.0 
 roll = math.pi	#Rotacion x
 pitch = 0.0	#Rotacion y	
 yaw = 0.0		#Rotacion z
@@ -160,6 +162,13 @@ def pixel_to_baxter(px, dist):
 	
 	return (x, y)
 
+def QtoE(): #Quaternion to Euler. Converts Quaternion angles(x, y, z, w) into Euler angles (x, y ,z) and prints them
+	euler = tf.transformations.euler_from_quaternion(limb_interface.endpoint_pose()['orientation'])
+	print ("Arm positions and Quaternion angles")
+	print (limb_interface.endpoint_pose())
+	print ("Arm Euler angles: ", euler)
+
+
 cam = baxter_interface.camera.CameraController("left_hand_camera")
 
 cam.open()
@@ -174,10 +183,17 @@ def callback(msg):
 
 rospy.Subscriber('/cameras/left_hand_camera/image', Image , callback)
 
+puntos_agarre=[]
+
+#############
+mover_baxter('base',[x,y,0.0],[math.pi,0,0])
+#QtoE()
+#############
+
 while not rospy.is_shutdown():
 	while np.all(foto)== None:
 		continue
-
+	#rospy.sleep(5)
 	frame=foto
 	hh,ww = foto.shape[:2]
 	#print (x,y)
@@ -209,10 +225,10 @@ while not rospy.is_shutdown():
 		#rospy.sleep(0.03)
 		rospy.sleep(0.3)
 	
+	#rospy.sleep(5)
 	margen_img=10
-	puntos_agarre=[]
+	
 	for c in contornos:
-		
 		area=cv2.contourArea(c)
 		x,y,w,h=cv2.boundingRect(c)
 		xc,yc=x+w/2,y+h/2
@@ -249,15 +265,18 @@ while not rospy.is_shutdown():
 	print len(puntos_agarre)
 #dist=22cm
 	for i in puntos_agarre:
-		print i
+		print 'punto de agarre: ', i
 		(px,py)=pixel_to_baxter(i,0.22)
-		print px,py
+		print 'pixel to baxter: ', px,py
 		mover_baxter('base',[px,py,0.0],[math.pi,0,0])
 
 
 	cv2.imshow('cam',frame)
 	#cv2.imshow('roi',roi)
 	#print len(contornos)
+
+	#para limpiar la lista de puntos
+	del puntos_agarre[:]
 
 	k=cv2.waitKey(5) & 0xFF
 	if k==27:
