@@ -7,7 +7,6 @@ import baxter_interface
 import cv_bridge
 import roslib
 import tf
-import matplotlib.pyplot as plt
 from sensor_msgs.msg import Image
 from baxter_core_msgs.srv import SolvePositionIK, SolvePositionIKRequest
 from geometry_msgs.msg import PoseStamped
@@ -15,7 +14,17 @@ from sensor_msgs.msg import JointState
 from keras.preprocessing.image import load_img, img_to_array
 from keras.models import load_model
 from math import hypot
-#from baxterfunctions import *
+
+puntos_agarre=[]
+angulos_agarre=[]
+margen_img=10
+tamano_deseado=100
+longitud, altura = 100,100
+modelo='./modelo/modelo-32b-20e-2000.h5'
+pesos='./modelo/pesos-32b-20e-2000.h5'
+cnn=load_model(modelo)
+cnn.load_weights(pesos)
+
 
 def prediccion(file):
 	#x = load_img(file,target_size=(longitud,altura))
@@ -106,11 +115,6 @@ def pixel_to_baxter(px, dist):
 	y = ((px[0] - (width / 2)) * cam_calibracion * dist)+ pose_i[1] + cam_y_offset
 	
 	return (x, y)
-def send_image(image):	#Shows an image on Baxter's screen
-	img = cv2.imread(image)	#Reads an image
-	msg = cv_bridge.CvBridge().cv2_to_imgmsg(img, encoding="bgr8") #Makes the opencv-ros bridge, converts an image to msg
-	pub.publish(msg) #Shows the image on Baxter's head screen
-	rospy.sleep(0.1)
 
 def QtoE(): #Quaternion to Euler. Converts Quaternion angles(x, y, z, w) into Euler angles (x, y ,z) and prints them
 	euler = tf.transformations.euler_from_quaternion(limb_interface.endpoint_pose()['orientation'])
@@ -122,8 +126,8 @@ def QtoE(): #Quaternion to Euler. Converts Quaternion angles(x, y, z, w) into Eu
 def img_process(image):
 	hh,ww=image.shape[:2]
 	roi=image[300:hh, 0:ww]
-	gray= cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-	#gray= cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+
+	gray= cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 	blur= cv2.GaussianBlur(gray,(5,5),0)
 	canny= cv2.Canny(blur,50,200)
 
@@ -136,7 +140,7 @@ def img_process(image):
 	for c in contornos:
 		x,y,w,h=cv2.boundingRect(c)
 		area=w*h
-		if area<=1000 or y<300:
+		if area<=1000:
 			continue
 		cont_validos.append(c)
 
@@ -148,7 +152,8 @@ def recortes_img(image, contornos):
 	for c in contornos:
 		x,y,w,h=cv2.boundingRect(c)
 		xc,yc=x+w/2,y+h/2
-		
+		puntos_agarre.append((xc,yc))
+
 		yi=y-margen_img
 		yf=y+h+margen_img
 		xi=x-margen_img
@@ -163,8 +168,6 @@ def recortes_img(image, contornos):
 		recortes.append(crop)
 
 	return recortes
-
-
 
 #Reescala las imagenes recortadas para luego ser pasadas al predictor
 def reescalado(recorte):
@@ -194,7 +197,7 @@ def prediccion_obj(recortes):
 	return nombres_obj
 
 
-#Dibuja sobre la imagen con respecto a los objetos y calcula angulo de inclinacion y retorna punto de agarre
+#Dibuja sobre la imagen con respecto a los objetos y calcula angulo de inclinacion
 def info_and_angles(img,contornos,nombres):
 	j=0
 	for c in contornos:
@@ -251,8 +254,6 @@ def info_and_angles(img,contornos,nombres):
 		xcentral=xcl+xcs-xb2
 		ycentral=ycl+ycs-yb2
 
-		puntos_agarre.append((xcentral,ycentral))
-
 		cv2.circle(img,(xcentral,ycentral),6,(255,0,255),-1)
 
 		#circulo en el lado mas corto
@@ -261,147 +262,14 @@ def info_and_angles(img,contornos,nombres):
 		cv2.line(img,(xcentral,ycentral),(xcs,ycs),(0,255,0),5)		
 
 		j=j+1
-	return puntos_agarre
 
 def ejecutar_mov(puntos):
 	k=0
 	for p in puntos:
 		print 'punto de agarre: ', p
-		(px,py)=pixel_to_baxter(p,0.22)
+		(px,py)=pixel_to_baxter(p,0.25)
 		print 'pixel to baxter: ', px,py
 		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]])
-		
+		print 'movimiento, angulo de giro ', angulo_inclinacion
 		mover_baxter('base',[px,py,-0.2],[math.pi,0,angulos_agarre[k]])
 		k=k+1
-
-####################################
-
-####################################
-#cargar modelo entrenado
-longitud, altura = 100,100
-modelo='./modelo/modelo-32b-20e-2000.h5'
-pesos='./modelo/pesos-32b-20e-2000.h5'
-cnn=load_model(modelo)
-cnn.load_weights(pesos)
-
-#Iniciar Nodo
-rospy.init_node("reconocimiento", anonymous= True)
-cam = baxter_interface.camera.CameraController("left_hand_camera")
-cam.open()
-cam.resolution = cam.MODES[0]
-#cam.exposure            = -1             # range, 0-100 auto = -1
-#cam.gain                = -1             # range, 0-79 auto = -1
-#cam.white_balance_blue  = -1             # range 0-4095, auto = -1
-#cam.white_balance_green = -1             # range 0-4095, auto = -1
-#cam.white_balance_red   = -1             # range 0-4095, auto = -1
-# camera parametecrs (NB. other parameters in open_camera)
-cam_calib    = 0.0025                     # meters per pixel at 1 meter
-cam_x_offset = 0.0                       # camera gripper offset
-cam_y_offset = 0.0
-width        = 960 #640 960                       # Camera resolution
-height       = 600 #400 600
-	#inicializacion baxter
-arm='left'
-# Brazo a utilizar
-limb           = arm
-limb_interface = baxter_interface.Limb(limb)
-if arm == "left":
-	other_limb = "right"
-else:
-	other_limb = "left"
-other_limb_interface = baxter_interface.Limb(other_limb)       
-	# set speed as a ratio of maximum speed
-limb_interface.set_joint_position_speed(0.5)
-other_limb_interface.set_joint_position_speed(0.5)
-gripper = baxter_interface.Gripper(arm)
-gripper.calibrate()
-# Pose inicial
-x = 0.6
-y = 0.3
-z = 0.0 
-roll = math.pi	#Rotacion x
-pitch = 0.0	#Rotacion y	
-yaw = 0.0		#Rotacion z
-
-pose_i = [x, y, z, roll, pitch, yaw]
-pose = [x, y, z, roll, pitch, yaw]
-
-cam_calibracion = 0.0025            # 0.0025 pixeles por metro a 1 metro de distancia. Factor de correccion
-cam_x_offset    = 0.04              # Correccion de camara por los gripper,
-cam_y_offset    = -0.015       
-resolution      = 1
-width           = 960               # 1280 640  960
-height          = 600               # 800  400  600
-	######
-margen_img=10
-tamano_deseado=100
-nombres=[]
-puntos_agarre=[]
-angulos_agarre=[]
-
-foto = None
-def callback(msg):
-	global foto 
-	foto = cv_bridge.CvBridge().imgmsg_to_cv2(msg)
-
-rospy.Subscriber('/cameras/left_hand_camera/image', Image , callback)
-
-mover_baxter('base',[x,y,0.0],[math.pi,0,0])
-
-img_counter = 0
-
-while not rospy.is_shutdown():
-	#Capturar un frame
-	while np.all(foto) == None:
-		#print "hola"
-		continue 
-
-	frame = foto
-	hh,ww = foto.shape[:2]
-	roi=foto[300:hh ,0:ww]
-	countours=img_process(frame)
-	print 'contornos: ',len(countours)
-	recortes=recortes_img(frame,countours)
-	print 'recortes: ',len(recortes)
-	nombres=prediccion_obj(recortes)
-	print 'nombres: ',len(nombres)
-	puntos=info_and_angles(frame,countours,nombres)
-	print 'puntos: ',len(puntos)
-	print puntos
-	#Mostrar la imagen
-	#cv2.imshow('Imagen',roi )
-
-	#ejecutar_mov(puntos)
-
-	#mover_baxter('base',[x,y,0.0],[math.pi,0,0])
-
-	#plt.imshow(roi)
-	#plt.show()
-
-	#para limpiar la lista de puntos
-	#del puntos_agarre[:]
-	#del angulos_agarre[:]
-
-	break
-
-	k=cv2.waitKey(1)
-
-	if k%256==27:
-		print("Escape hit, closing...")
-		break
-	elif k%256==32:
-		img_name = "opencv_frame_{}.png".format(img_counter)
-		cv2.imwrite(img_name, frame)
-		print("{} written!".format(img_name))
-		img_counter += 1
-
-	rospy.sleep(1)
-
-cv2.imshow('Imagen',roi )
-cv2.imshow('Imagen completa',frame)
-#send_image(frame)
-ejecutar_mov(puntos)
-cv2.waitKey(0)
-#ejecutar_mov(puntos)
-
-#cv2.destroyAllWindows()
