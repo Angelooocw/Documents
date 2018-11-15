@@ -106,6 +106,7 @@ def pixel_to_baxter(px, dist):
 	y = ((px[0] - (width / 2)) * cam_calibracion * dist)+ pose_i[1] + cam_y_offset
 	
 	return (x, y)
+
 def send_image(image):	#Shows an image on Baxter's screen
 	img = cv2.imread(image)	#Reads an image
 	msg = cv_bridge.CvBridge().cv2_to_imgmsg(img, encoding="bgr8") #Makes the opencv-ros bridge, converts an image to msg
@@ -236,11 +237,12 @@ def info_and_angles(img,contornos,nombres):
 			pendiente=float(ybb2-ybb1)/float(xbb2-xbb1)
 
 		else:
-			pendiente=1
+			pendiente=0
 
 		angulo_inclinacion=math.atan(pendiente)
 		angulo_grados=math.degrees(angulo_inclinacion)
 		print 'pendiente: ',pendiente, ' inclinacion: ',angulo_inclinacion,angulo_grados
+
 		angulos_agarre.append(angulo_inclinacion)
 
 		#Punto medio en el lado mas corto
@@ -265,13 +267,24 @@ def info_and_angles(img,contornos,nombres):
 
 def ejecutar_mov(puntos):
 	k=0
+	xdep=0.5
+	ydep=0.8
 	for p in puntos:
 		print 'punto de agarre: ', p
 		(px,py)=pixel_to_baxter(p,0.22)
+		px=px-0.05
+		py=py-0.1
 		print 'pixel to baxter: ', px,py
-		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]])
-		
-		mover_baxter('base',[px,py,-0.2],[math.pi,0,angulos_agarre[k]])
+		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]+math.pi/2])
+		mover_baxter('base',[px,py,-0.2],[math.pi,0,angulos_agarre[k]+math.pi/2])
+		gripper.close()
+		rospy.sleep(0.2)
+		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]+math.pi/2])
+		mover_baxter('base',[xdep,ydep,0.0],[math.pi,0,angulos_agarre[k]])
+		mover_baxter('base',[xdep,ydep,-0.17],[math.pi,0,angulos_agarre[k]])
+		gripper.open()
+		mover_baxter('base',[xdep,ydep,0.0],[math.pi,0,0])
+		mover_baxter('base',[x,y,0.0],[math.pi,0,0])
 		k=k+1
 
 ####################################
@@ -286,6 +299,9 @@ cnn.load_weights(pesos)
 
 #Iniciar Nodo
 rospy.init_node("reconocimiento", anonymous= True)
+
+pub = rospy.Publisher('/robot/xdisplay', Image, latch=True, queue_size=10)
+
 cam = baxter_interface.camera.CameraController("left_hand_camera")
 cam.open()
 cam.resolution = cam.MODES[0]
@@ -297,7 +313,7 @@ cam.resolution = cam.MODES[0]
 # camera parametecrs (NB. other parameters in open_camera)
 cam_calib    = 0.0025                     # meters per pixel at 1 meter
 cam_x_offset = 0.0                       # camera gripper offset
-cam_y_offset = 0.0
+cam_y_offset = -30.0
 width        = 960 #640 960                       # Camera resolution
 height       = 600 #400 600
 	#inicializacion baxter
@@ -316,7 +332,7 @@ other_limb_interface.set_joint_position_speed(0.5)
 gripper = baxter_interface.Gripper(arm)
 gripper.calibrate()
 # Pose inicial
-x = 0.6
+x = 0.47
 y = 0.3
 z = 0.0 
 roll = math.pi	#Rotacion x
@@ -347,7 +363,7 @@ def callback(msg):
 rospy.Subscriber('/cameras/left_hand_camera/image', Image , callback)
 
 mover_baxter('base',[x,y,0.0],[math.pi,0,0])
-
+rospy.sleep(1)
 img_counter = 0
 
 while not rospy.is_shutdown():
@@ -368,8 +384,6 @@ while not rospy.is_shutdown():
 	puntos=info_and_angles(frame,countours,nombres)
 	print 'puntos: ',len(puntos)
 	print puntos
-	#Mostrar la imagen
-	#cv2.imshow('Imagen',roi )
 
 	#ejecutar_mov(puntos)
 
@@ -399,9 +413,13 @@ while not rospy.is_shutdown():
 
 cv2.imshow('Imagen',roi )
 cv2.imshow('Imagen completa',frame)
-#send_image(frame)
+
+imagen_camara=cv2.resize(frame,(1024,600))
+print frame.shape[:2]
+cv2.imwrite('cam.jpg',imagen_camara)
+send_image('cam.jpg')
 ejecutar_mov(puntos)
+QtoE()
 cv2.waitKey(0)
-#ejecutar_mov(puntos)
 
 #cv2.destroyAllWindows()
