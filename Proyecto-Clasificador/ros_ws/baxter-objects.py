@@ -15,6 +15,8 @@ from sensor_msgs.msg import JointState
 from keras.preprocessing.image import load_img, img_to_array
 from keras.models import load_model
 from math import hypot
+
+import random
 #from baxterfunctions import *
 
 def prediccion(file):
@@ -219,31 +221,59 @@ def info_and_angles(img,contornos,nombres):
 		dist2=hypot(xb3-xb2,yb3-yb2)
 
 		if dist1<=dist2:
+			#puntos del lado mas corto
 			xbb1,ybb1=xb1,yb1
 			xbb2,ybb2=xb2,yb2
+			xp1,yp1=xb2,yb2
+			xp2,yp2=xb3,yb3
 			#punto medio en el lado mas largo
 			xcl,ycl=(xb2+xb3)/2,(yb2+yb3)/2
 			dist=dist1
 
 		else:
+			#puntos del lado mas corto
 			xbb1,ybb1=xb2,yb2
 			xbb2,ybb2=xb3,yb3
+			xp1,yp1=xb1,yb1
+			xp2,yp2=xb2,yb2
 			#punto medio en el lado mas largo
 			xcl,ycl=(xb1+xb2)/2,(yb1+yb2)/2
 			dist=dist2
 
 		#print 'puntos ',ybb2,ybb1,xbb2,xbb1
+		"""
 		if xbb2-xbb1!=0:
 			pendiente=float(ybb2-ybb1)/float(xbb2-xbb1)
+		"""
+
+		if xp2-xp1!=0:
+			pendiente=float(yp2-yp1)/float(xp2-xp1)
 
 		else:
 			pendiente=0
 
 		angulo_inclinacion=math.atan(pendiente)
 		angulo_grados=math.degrees(angulo_inclinacion)
-		print 'pendiente: ',pendiente, ' inclinacion: ',angulo_inclinacion,angulo_grados
+		print 'pendiente: ',pendiente, ' inclinacion: ',angulo_inclinacion,angulo_grados, np.radians(rect[2])
+		"""
+		#correccion angulo de agarre
+		if (angulo_grados>-5 and angulo_grados<5) or (angulo_grados>85 and angulo_grados<95) or (angulo_grados>-85 and angulo_grados<-95):
+			angulo_inclinacion=angulo_inclinacion-math.pi/2
+			
+		"""
+		#Correccion angulo de agarre (en base al rectangulo de area minima)
+		dimension=rect[1]
+		angle=rect[2]
+		if (dimension[0]<dimension[1] and (angle==-90 or angle==-0)):
+			angulo=-np.radians(angle)
+		elif (dimension[0]<dimension[1]):
+			angulo=-np.radians(angle)
+		else:
+			angulo=-np.radians(angle)+math.pi/2
+		
 
-		angulos_agarre.append(angulo_inclinacion)
+		#angulos_agarre.append(angulo_inclinacion)
+		angulos_agarre.append(angulo)
 
 		#Punto medio en el lado mas corto
 		xcs=(xbb1+xbb2)/2
@@ -252,6 +282,8 @@ def info_and_angles(img,contornos,nombres):
 		#Punto medio en el rectangulo de area minima
 		xcentral=xcl+xcs-xb2
 		ycentral=ycl+ycs-yb2
+
+		cv2.putText(img, str(angulo_grados),(xcentral,ycentral),cv2.FONT_HERSHEY_SIMPLEX,0.4,np.array([0,200,0],dtype=np.uint8).tolist(),1,8)
 
 		puntos_agarre.append((xcentral,ycentral))
 
@@ -269,23 +301,59 @@ def ejecutar_mov(puntos):
 	k=0
 	xdep=0.5
 	ydep=0.8
+	"""
 	for p in puntos:
 		print 'punto de agarre: ', p
 		(px,py)=pixel_to_baxter(p,0.22)
-		px=px-0.05
-		py=py-0.1
+		#px=px-0.05
+		#py=py-0.1
 		print 'pixel to baxter: ', px,py
-		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]+math.pi/2])
-		mover_baxter('base',[px,py,-0.2],[math.pi,0,angulos_agarre[k]+math.pi/2])
+		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]])
+		mover_baxter('base',[px,py,-0.2],[math.pi,0,angulos_agarre[k]])
+
 		gripper.close()
 		rospy.sleep(0.2)
-		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]+math.pi/2])
-		mover_baxter('base',[xdep,ydep,0.0],[math.pi,0,angulos_agarre[k]])
-		mover_baxter('base',[xdep,ydep,-0.17],[math.pi,0,angulos_agarre[k]])
+		#mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]+math.pi/2])
+		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]])
+
+		desfase=random()
+
+		mover_baxter('base',[xdep+desfase,ydep,0.0],[math.pi,0,angulos_agarre[k]])
+		mover_baxter('base',[xdep+desfase,ydep,-0.18],[math.pi,0,angulos_agarre[k]])
 		gripper.open()
-		mover_baxter('base',[xdep,ydep,0.0],[math.pi,0,0])
+		#mover_baxter('base',[xdep,ydep,0.0],[math.pi,0,0])
 		mover_baxter('base',[x,y,0.0],[math.pi,0,0])
 		k=k+1
+"""
+	while puntos:
+		p=puntos.pop()
+		(px,py)=pixel_to_baxter(p,0.22)
+		print 'pixel to baxter: ',px,py
+		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]])
+		mover_baxter('base',[px,py,-0.2],[math.pi,0,angulos_agarre[k]])
+
+		gripper.close()
+		rospy.sleep(0.2)
+
+		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]])
+
+		desfase=random.uniform(0,0.1)
+		print 'desfase ',desfase
+		mover_baxter('base',[xdep+desfase,ydep,0.0],[math.pi,0,angulos_agarre[k]])
+		mover_baxter('base',[xdep+desfase,ydep,-0.18],[math.pi,0,angulos_agarre[k]])
+
+		gripper.open()
+
+		mover_baxter('base',[xdep+desfase,ydep,0.0],[math.pi,0,angulos_agarre[k]])
+		mover_baxter('base',[x,y,0.0],[math.pi,0,0])
+
+		print 'puntos en la lista: ', puntos
+		k=k+1		
+
+def ajuste_posicion(xx,yy):
+	mover_baxter('base',[xx,yy,0.0],[math.pi,0,0])
+
+
 
 ####################################
 
@@ -311,11 +379,7 @@ cam.resolution = cam.MODES[0]
 #cam.white_balance_green = -1             # range 0-4095, auto = -1
 #cam.white_balance_red   = -1             # range 0-4095, auto = -1
 # camera parametecrs (NB. other parameters in open_camera)
-cam_calib    = 0.0025                     # meters per pixel at 1 meter
-cam_x_offset = 0.0                       # camera gripper offset
-cam_y_offset = -30.0
-width        = 960 #640 960                       # Camera resolution
-height       = 600 #400 600
+
 	#inicializacion baxter
 arm='left'
 # Brazo a utilizar
@@ -343,8 +407,8 @@ pose_i = [x, y, z, roll, pitch, yaw]
 pose = [x, y, z, roll, pitch, yaw]
 
 cam_calibracion = 0.0025            # 0.0025 pixeles por metro a 1 metro de distancia. Factor de correccion
-cam_x_offset    = 0.04              # Correccion de camara por los gripper,
-cam_y_offset    = -0.015       
+cam_x_offset    = -0.01 #0.04              # Correccion de camara por los gripper,
+cam_y_offset    = -0.115  #-0.015     
 resolution      = 1
 width           = 960               # 1280 640  960
 height          = 600               # 800  400  600
@@ -369,7 +433,6 @@ img_counter = 0
 while not rospy.is_shutdown():
 	#Capturar un frame
 	while np.all(foto) == None:
-		#print "hola"
 		continue 
 
 	frame = foto
@@ -385,6 +448,17 @@ while not rospy.is_shutdown():
 	print 'puntos: ',len(puntos)
 	print puntos
 
+	#############AQUI VA SECCION DE CODIGO DE PRUEBA (***)
+
+	rospy.sleep(0.5)
+
+	imagen_camara=cv2.resize(frame,(1024,600))
+	#print frame.shape[:2]
+	cv2.imwrite('cam.jpg',imagen_camara)
+	send_image('cam.jpg')
+
+	ejecutar_mov(puntos)
+
 	#ejecutar_mov(puntos)
 
 	#mover_baxter('base',[x,y,0.0],[math.pi,0,0])
@@ -396,7 +470,6 @@ while not rospy.is_shutdown():
 	#del puntos_agarre[:]
 	#del angulos_agarre[:]
 
-	break
 
 	k=cv2.waitKey(1)
 
@@ -409,8 +482,8 @@ while not rospy.is_shutdown():
 		print("{} written!".format(img_name))
 		img_counter += 1
 
-	rospy.sleep(1)
-
+	rospy.sleep(2)
+"""
 cv2.imshow('Imagen',roi )
 cv2.imshow('Imagen completa',frame)
 
@@ -419,7 +492,30 @@ print frame.shape[:2]
 cv2.imwrite('cam.jpg',imagen_camara)
 send_image('cam.jpg')
 ejecutar_mov(puntos)
+
 QtoE()
 cv2.waitKey(0)
-
+"""
 #cv2.destroyAllWindows()
+
+#(***)
+"""	###############Prueba, si no resulta borrar esta seccion
+
+	rand=random.randint(0,len(countours)-1)
+	print 'random ',rand
+	contorno_aleatorio=countours[rand]
+	xcont,ycont,wcont,hcont=cv2.boundingRect(contorno_aleatorio)
+	print 'movimiento de ajuste',xcont,ycont
+	(pxx,pyy)=pixel_to_baxter((xcont,ycont),0.22)
+	ajuste_posicion(pxx,pyy)
+	contornos_especificos=img_process(frame)
+	crops=recortes_img(frame,contornos_especificos)
+	name=prediccion_obj(crops)
+	points=info_and_angles(frame,contornos_especificos,name)
+	#ejecutar_mov(points)
+
+
+	#############################
+	#cv2.imshow('Imagen',roi )
+	#cv2.imshow('Imagen completa',frame)
+"""
