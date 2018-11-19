@@ -142,8 +142,31 @@ def img_process(image):
 		if area<=1000 or y<300:
 			continue
 		cont_validos.append(c)
-
+		puntos_pre.append((x,y))
 	return cont_validos
+
+def ucontorno(image):
+	gray= cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+	#gray= cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+	blur= cv2.GaussianBlur(gray,(5,5),0)
+	canny= cv2.Canny(blur,50,200)
+
+	#Morphologic, para completar bordes
+	kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
+	dilated = cv2.dilate(canny,kernel)
+
+	(contornos,_) = cv2.findContours(canny.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+	for c in contornos:
+		x,y,w,h=cv2.boundingRect(c)
+
+		area=w*h
+		if area<=1000 or y<300:
+			continue
+
+		cv2.rectangle(image, (x,y),(x+w,y+h),(255,0,255),2)
+		ct.append(c)
+	return ct
+
 
 #Realiza recortes por cada contorno detectado
 def recortes_img(image, contornos):
@@ -327,10 +350,10 @@ def ejecutar_mov(puntos):
 """
 	while puntos:
 		p=puntos.pop()
-		(px,py)=pixel_to_baxter(p,0.22)
+		(px,py)=pixel_to_baxter(p,0.3)
 		print 'pixel to baxter: ',px,py
 		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]])
-		mover_baxter('base',[px,py,-0.2],[math.pi,0,angulos_agarre[k]])
+		mover_baxter('base',[px,py,-0.15],[math.pi,0,angulos_agarre[k]])
 
 		gripper.close()
 		rospy.sleep(0.2)
@@ -407,17 +430,19 @@ pose_i = [x, y, z, roll, pitch, yaw]
 pose = [x, y, z, roll, pitch, yaw]
 
 cam_calibracion = 0.0025            # 0.0025 pixeles por metro a 1 metro de distancia. Factor de correccion
-cam_x_offset    = -0.01 #0.04              # Correccion de camara por los gripper,
-cam_y_offset    = -0.115  #-0.015     
+cam_x_offset    = -0.045 #-0.01 #0.04              # Correccion de camara por los gripper,
+cam_y_offset    = -0.160  #-0.115  #-0.015     
 resolution      = 1
 width           = 960               # 1280 640  960
 height          = 600               # 800  400  600
 	######
 margen_img=10
 tamano_deseado=100
+puntos_pre=[]
 nombres=[]
 puntos_agarre=[]
 angulos_agarre=[]
+ct=[]
 
 foto = None
 def callback(msg):
@@ -448,6 +473,31 @@ while not rospy.is_shutdown():
 	print 'puntos: ',len(puntos)
 	print puntos
 
+	print puntos_pre
+
+	copia_puntos=puntos_pre
+	rospy.sleep(2)
+	#Prueba, acercamiento por objeto
+	while copia_puntos:
+		point=copia_puntos.pop()
+		(pointx,pointy)=pixel_to_baxter(point,0.3)
+		mover_baxter('base',[pointx-0.05,pointy,0.0],[math.pi,0,0])
+		contorno=ucontorno(foto)
+		print 'contorno: ',len(contorno)
+		rospy.sleep(1)
+		cv2.imwrite('ct.jpg',foto)
+
+		#Rectangulo de area minima
+		rect=cv2.minAreaRect(contorno[0])
+		ppp=[]
+		ppp.append(rect[0])
+		pose_i = [pointx-0.05, pointy, z, roll, pitch, yaw]
+		pose = [pointx-0.05, pointy, z, roll, pitch, yaw]
+		ejecutar_mov(ppp)
+
+		print 'centro: ',rect[0]
+
+	del ct[:]
 	#############AQUI VA SECCION DE CODIGO DE PRUEBA (***)
 
 	rospy.sleep(0.5)
@@ -457,7 +507,7 @@ while not rospy.is_shutdown():
 	cv2.imwrite('cam.jpg',imagen_camara)
 	send_image('cam.jpg')
 
-	ejecutar_mov(puntos)
+	#ejecutar_mov(puntos)
 
 	#ejecutar_mov(puntos)
 
