@@ -145,6 +145,7 @@ def img_process(image):
 		puntos_pre.append((x,y))
 	return cont_validos
 
+#Busca contorno en el centro de la imagen captada
 def ucontorno(image):
 	gray= cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 	#gray= cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
@@ -160,7 +161,8 @@ def ucontorno(image):
 		x,y,w,h=cv2.boundingRect(c)
 
 		area=w*h
-		if area<=1000 or y<300:
+		#Se limita la zona para ignorar contornos en los bordes
+		if area<=1000 or y<300 or x<400 or x>880:
 			continue
 
 		cv2.rectangle(image, (x,y),(x+w,y+h),(255,0,255),2)
@@ -189,7 +191,6 @@ def recortes_img(image, contornos):
 		recortes.append(crop)
 
 	return recortes
-
 
 
 #Reescala las imagenes recortadas para luego ser pasadas al predictor
@@ -320,40 +321,57 @@ def info_and_angles(img,contornos,nombres):
 		j=j+1
 	return puntos_agarre
 
+def correct_angle(rect_cont):
+	#Correccion angulo de agarre (en base al rectangulo de area minima)
+	dimension=rect_cont[1]
+	angle=rect_cont[2]
+	if (dimension[0]<dimension[1] and (angle==-90 or angle==-0)):
+		angulo=-np.radians(angle)
+	elif (dimension[0]<dimension[1]):
+		angulo=-np.radians(angle)
+	else:
+		angulo=-np.radians(angle)+math.pi/2
+
+	return angulo
+
+#Movimiento al punto con angulo definido
+def move(punto,angle):
+	k=0;
+	xdep=0.5
+	ydep=0.8
+	pto=punto.pop()
+	(px,py)=pixel_to_baxter(pto,0.3)
+	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
+	mover_baxter('base',[px,py,-0.21],[math.pi,0,angle])
+
+	gripper.close()
+	rospy.sleep(0.2)
+
+	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
+
+	desfase=random.uniform(0,0.1)
+	print 'desfase ',desfase
+
+	mover_baxter('base',[xdep+desfase,ydep,0.0],[math.pi,0,angle])
+	mover_baxter('base',[xdep+desfase,ydep,-0.17],[math.pi,0,angle])
+
+	gripper.open()
+
+	mover_baxter('base',[xdep+desfase,ydep,-0.17],[math.pi,0,angle])
+	mover_baxter('base',[xdep+desfase,ydep,0.0],[math.pi,0,angle])
+
+
 def ejecutar_mov(puntos):
 	k=0
 	xdep=0.5
 	ydep=0.8
-	"""
-	for p in puntos:
-		print 'punto de agarre: ', p
-		(px,py)=pixel_to_baxter(p,0.22)
-		#px=px-0.05
-		#py=py-0.1
-		print 'pixel to baxter: ', px,py
-		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]])
-		mover_baxter('base',[px,py,-0.2],[math.pi,0,angulos_agarre[k]])
 
-		gripper.close()
-		rospy.sleep(0.2)
-		#mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]+math.pi/2])
-		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]])
-
-		desfase=random()
-
-		mover_baxter('base',[xdep+desfase,ydep,0.0],[math.pi,0,angulos_agarre[k]])
-		mover_baxter('base',[xdep+desfase,ydep,-0.18],[math.pi,0,angulos_agarre[k]])
-		gripper.open()
-		#mover_baxter('base',[xdep,ydep,0.0],[math.pi,0,0])
-		mover_baxter('base',[x,y,0.0],[math.pi,0,0])
-		k=k+1
-"""
 	while puntos:
 		p=puntos.pop()
 		(px,py)=pixel_to_baxter(p,0.3)
 		print 'pixel to baxter: ',px,py
 		mover_baxter('base',[px,py,0.0],[math.pi,0,angulos_agarre[k]])
-		mover_baxter('base',[px,py,-0.15],[math.pi,0,angulos_agarre[k]])
+		mover_baxter('base',[px,py,-0.2],[math.pi,0,angulos_agarre[k]])
 
 		gripper.close()
 		rospy.sleep(0.2)
@@ -363,7 +381,7 @@ def ejecutar_mov(puntos):
 		desfase=random.uniform(0,0.1)
 		print 'desfase ',desfase
 		mover_baxter('base',[xdep+desfase,ydep,0.0],[math.pi,0,angulos_agarre[k]])
-		mover_baxter('base',[xdep+desfase,ydep,-0.18],[math.pi,0,angulos_agarre[k]])
+		mover_baxter('base',[xdep+desfase,ydep,-0.17],[math.pi,0,angulos_agarre[k]])
 
 		gripper.open()
 
@@ -462,6 +480,7 @@ while not rospy.is_shutdown():
 
 	frame = foto
 	hh,ww = foto.shape[:2]
+
 	roi=foto[300:hh ,0:ww]
 	countours=img_process(frame)
 	print 'contornos: ',len(countours)
@@ -473,39 +492,53 @@ while not rospy.is_shutdown():
 	print 'puntos: ',len(puntos)
 	print puntos
 
-	print puntos_pre
+	print 'puntos pre: ', puntos_pre
 
 	copia_puntos=puntos_pre
 	rospy.sleep(2)
-	#Prueba, acercamiento por objeto
-	while copia_puntos:
-		point=copia_puntos.pop()
-		(pointx,pointy)=pixel_to_baxter(point,0.3)
-		mover_baxter('base',[pointx-0.05,pointy,0.0],[math.pi,0,0])
-		contorno=ucontorno(foto)
-		print 'contorno: ',len(contorno)
-		rospy.sleep(1)
-		cv2.imwrite('ct.jpg',foto)
-
-		#Rectangulo de area minima
-		rect=cv2.minAreaRect(contorno[0])
-		ppp=[]
-		ppp.append(rect[0])
-		pose_i = [pointx-0.05, pointy, z, roll, pitch, yaw]
-		pose = [pointx-0.05, pointy, z, roll, pitch, yaw]
-		ejecutar_mov(ppp)
-
-		print 'centro: ',rect[0]
-
-	del ct[:]
-	#############AQUI VA SECCION DE CODIGO DE PRUEBA (***)
-
-	rospy.sleep(0.5)
 
 	imagen_camara=cv2.resize(frame,(1024,600))
 	#print frame.shape[:2]
 	cv2.imwrite('cam.jpg',imagen_camara)
 	send_image('cam.jpg')
+
+	#Prueba, acercamiento por objeto
+	while copia_puntos:   #se acerca a cada punto donde detecto un objeto el analisis inicial
+		point=copia_puntos.pop()
+		(pointx,pointy)=pixel_to_baxter(point,0.3)
+		mover_baxter('base',[pointx-0.05,pointy+0.05,0.0],[math.pi,0,0])
+		contorno=ucontorno(foto)  #recalcula el contorno y lo retorna
+		print 'contorno: ',len(contorno)
+		rospy.sleep(1)
+		cv2.imwrite('ct.jpg',foto)
+
+		#Calcula el Rectangulo de area minima del contorno calculado
+		if len(contorno)!=0:
+			rect=cv2.minAreaRect(contorno[0])			
+		else: 
+			continue
+		#Guarda el centro del rectangulo minimo
+		ppp=[]
+		ppp.append(rect[0])
+		#Actualiza la nueva pose donde se encuentra el brazo
+		pose_i = [pointx-0.05, pointy+0.05, z, roll, pitch, yaw]
+		pose = [pointx-0.05, pointy+0.05, z, roll, pitch, yaw]
+		angulo_corregido=correct_angle(rect)  #Corrige el angulo en la nueva posicion
+
+		print ppp
+		print angulo_corregido
+		move(ppp,angulo_corregido)
+
+		#Actualizo posicion inicial
+		pose_i = [x, y, z, roll, pitch, yaw]
+		pose = [x, y, z, roll, pitch, yaw]
+		mover_baxter('base',[x,y,0.0],[math.pi,0,0])
+		print 'centro: ',rect[0]
+
+	del ct[:]  #ct= arreglo que almacena contorno detectado temporalmente
+
+
+	rospy.sleep(0.5)
 
 	#ejecutar_mov(puntos)
 
@@ -517,9 +550,9 @@ while not rospy.is_shutdown():
 	#plt.show()
 
 	#para limpiar la lista de puntos
-	#del puntos_agarre[:]
-	#del angulos_agarre[:]
-
+	del puntos_agarre[:]
+	del angulos_agarre[:]
+	del puntos_pre[:]
 
 	k=cv2.waitKey(1)
 
@@ -547,25 +580,3 @@ QtoE()
 cv2.waitKey(0)
 """
 #cv2.destroyAllWindows()
-
-#(***)
-"""	###############Prueba, si no resulta borrar esta seccion
-
-	rand=random.randint(0,len(countours)-1)
-	print 'random ',rand
-	contorno_aleatorio=countours[rand]
-	xcont,ycont,wcont,hcont=cv2.boundingRect(contorno_aleatorio)
-	print 'movimiento de ajuste',xcont,ycont
-	(pxx,pyy)=pixel_to_baxter((xcont,ycont),0.22)
-	ajuste_posicion(pxx,pyy)
-	contornos_especificos=img_process(frame)
-	crops=recortes_img(frame,contornos_especificos)
-	name=prediccion_obj(crops)
-	points=info_and_angles(frame,contornos_especificos,name)
-	#ejecutar_mov(points)
-
-
-	#############################
-	#cv2.imshow('Imagen',roi )
-	#cv2.imshow('Imagen completa',frame)
-"""
