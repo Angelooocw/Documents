@@ -20,6 +20,8 @@ from grasp_learner import grasp_obj
 from grasp_predictor import Predictors
 import time
 
+puntos=[]
+
 def drawRectangle(I, h, w, t, gsize=300):
 	I_temp = I
 	grasp_l = gsize/2.5
@@ -38,11 +40,18 @@ def drawRectangle(I, h, w, t, gsize=300):
 	cv2.line(I_temp, tuple(im_points[1].astype(int)), tuple(im_points[2].astype(int)), color=(0,0,255), thickness=5)
 	cv2.line(I_temp, tuple(im_points[2].astype(int)), tuple(im_points[3].astype(int)), color=(0,255,0), thickness=5)
 	cv2.line(I_temp, tuple(im_points[3].astype(int)), tuple(im_points[0].astype(int)), color=(0,0,255), thickness=5)
+	print "puntos de la caja de grasp y angulo", im_points, grasp_angle
+	for p in im_points:
+		puntos.append(p)
+	print len(im_points)
 	return I_temp
 
 
 #python grasp_image.py --im ./a5.jpg --model ./models/Grasp_model --nbest 5 --nsamples 250 --gscale 0.234 --gpu -1
 
+def get_points():
+	return puntos
+	
 
 def grasping(img):
 
@@ -52,8 +61,8 @@ def grasping(img):
 	I=img
 	model_path= 'models/Grasp_model'
 	nsamples = 250
-	nbest = 5
-	gscale = 0.1
+	nbest = 1
+	gscale = 0.3
 	imsize = max(I.shape[:2])
 	gsize = int(gscale*imsize) # Size of grasp patch
 	max_batchsize = 128

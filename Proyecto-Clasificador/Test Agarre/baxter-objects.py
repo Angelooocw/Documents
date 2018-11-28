@@ -15,7 +15,7 @@ from sensor_msgs.msg import JointState
 from keras.preprocessing.image import load_img, img_to_array
 from keras.models import load_model
 from math import hypot
-from grasp_image import grasping
+from grasp_image import grasping,get_points
 
 
 import random
@@ -173,14 +173,15 @@ def ucontorno(image):
 		ct.append(c)
 	return ct
 
-
+xi=0
+yi=0
 #Realiza recortes por cada contorno detectado
 def recortes_img(image, contornos):
 	recortes=[]
 	for c in contornos:
 		x,y,w,h=cv2.boundingRect(c)
 		xc,yc=x+w/2,y+h/2
-		
+		global xi,yi
 		yi=y-margen_img
 		yf=y+h+margen_img
 		xi=x-margen_img
@@ -357,11 +358,11 @@ def move(punto,angle):
 	print 'desfase ',desfase
 
 	mover_baxter('base',[xdep+desfase,ydep,0.0],[math.pi,0,angle])
-	mover_baxter('base',[xdep+desfase,ydep,-0.17],[math.pi,0,angle])
+	mover_baxter('base',[xdep+desfase,ydep,-0.18],[math.pi,0,angle])
 
 	gripper.open()
 
-	mover_baxter('base',[xdep+desfase,ydep,-0.17],[math.pi,0,angle])
+	mover_baxter('base',[xdep+desfase,ydep,-0.18],[math.pi,0,angle])
 	mover_baxter('base',[xdep+desfase,ydep,0.0],[math.pi,0,angle])
 
 
@@ -497,10 +498,39 @@ while not rospy.is_shutdown():
 	print 'recortes: ',len(recortes)
 	print recortes[0].shape
 	crop=recortes[0]
-	crop=crop[:,:,:3]
-	cv2.imwrite('crop.jpg',crop)
-	#grasping(crop.astype(np.int32))
+	crop2=crop[:,:,:3]
+	#cv2.imwrite('crop.jpg',crop2)
+	grasping(crop2.astype(np.int32))
+	rect_grasp=get_points()
 
+	#############Calculo del centro del rectangulo de grasping
+	puntx1,punty1=rect_grasp[0]
+	puntx2,punty2=rect_grasp[1]
+	puntx3,punty3=rect_grasp[2]
+	dist1=hypot(puntx2-puntx1,punty2-punty1)
+	dist2=hypot(puntx3-puntx2,punty3-punty2)
+	xd,yd=((puntx1+puntx2)/2,(punty1+punty2)/2)
+	xd2,yd2=((puntx2+puntx3)/2,(punty2+punty3)/2)
+	xd,xd2,yd,yd2=int(xd),int(xd2),int(yd),int(yd2)
+	pxmedio,pymedio=int(xd2+xd-puntx2),int(yd2+yd-punty2)
+	puntx1,puntx2,puntx3=int(puntx1),int(puntx2),int(puntx3)
+	punty1,punty2,punty3=int(punty1),int(punty2),int(punty3)
+	cv2.circle(crop,(pxmedio,pymedio),6,(0,180,0),-1)
+	cv2.circle(crop,(puntx1,punty1),6,(255,0,255),-1)
+	cv2.circle(crop,(puntx2,punty2),6,(255,0,255),-1)
+	cv2.circle(crop,(puntx3,punty3),6,(255,0,255),-1)
+	cv2.circle(crop,(xd,yd),6,(0,0,255),-1)
+	cv2.circle(crop,(xd2,yd2),6,(0,0,255),-1)
+
+	cv2.imwrite('crop.jpg',crop)
+	#############
+
+	print 'puntos grasp ',rect_grasp
+	print 'punto: ',rect_grasp[0], rect_grasp[1]
+	(puntox,puntoy)=pixel_to_baxter(rect_grasp[0],0.3)
+	print 'valor x e y ',xi,yi
+	#mover_baxter('base',[puntox,puntoy,0],[math.pi,0,0])
+	print 'suma de punto= ', rect_grasp[0]+rect_grasp[1]
 	nombres=prediccion_obj(recortes)
 	print 'nombres: ',len(nombres)
 	puntos=info_and_angles(frame,countours,nombres)
@@ -557,7 +587,7 @@ while not rospy.is_shutdown():
 	cv2.imwrite('ca.jpg',frame2)
 	print 'nuevo tamano 2',frame2.shape
 	print 'type ',type(frame2) 
-	grasping(frame2.astype(np.int32))
+	#grasping(frame2.astype(np.int32))
 	cv2.imwrite('test.jpg',frame2)
 
 	cam2= cv2.imread("grasp.jpg")
