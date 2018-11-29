@@ -175,6 +175,10 @@ def ucontorno(image):
 
 xi=0
 yi=0
+
+xcrop=0
+ycrop=0
+
 #Realiza recortes por cada contorno detectado
 def recortes_img(image, contornos):
 	recortes=[]
@@ -186,7 +190,10 @@ def recortes_img(image, contornos):
 		yf=y+h+margen_img
 		xi=x-margen_img
 		xf=x+w+margen_img
-
+		######Prueba 
+		global xcrop,ycrop
+		xcrop,ycrop=xi,yi
+		######
 		if yi<0:
 			yi=0
 		if xi<0:
@@ -523,6 +530,24 @@ while not rospy.is_shutdown():
 	cv2.circle(crop,(xd2,yd2),6,(0,0,255),-1)
 
 	cv2.imwrite('crop.jpg',crop)
+
+
+	#####Centro punto de agarre para pasar a baxter
+	
+
+	point_centerx,point_centery=pxmedio+xcrop,pymedio+ycrop
+	print 'Puntos de grasp frame3 ',point_centerx,point_centery, pxmedio,pymedio
+	frame3=foto
+	cv2.circle(frame3,(xcrop,ycrop),6,(255,250,0),-1)
+	
+	cv2.circle(frame3,(point_centerx,point_centery),6,(0,250,0),-1)
+	cv2.imwrite('frame3.jpg',frame3)
+	(ptx,pty)=pixel_to_baxter((point_centerx,point_centery),0.3)
+	#mover_baxter('base',[ptx,pty,0],[math.pi,0,0])
+	#mover_baxter('base',[ptx,pty,-0.209],[math.pi,0,0])
+	gripper.close()
+	rospy.sleep(0.2)
+	#mover_baxter('base',[ptx,pty,0],[math.pi,0,0])
 	#############
 
 	print 'puntos grasp ',rect_grasp
