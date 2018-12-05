@@ -338,15 +338,15 @@ def correct_angle(rect_cont):
 	print 'dimension: ',dimension
 	angle=rect_cont[2]
 	if (dimension[0]<dimension[1] and (angle==-90 or angle==-0)):
-		angulo=-np.radians(angle)+math.pi/2
-	elif (dimension[0]<dimension[1]):
-		angulo=-np.radians(angle)+math.pi/2
-	else:
 		angulo=-np.radians(angle)
-
+	elif (dimension[0]<dimension[1]):
+		angulo=-np.radians(angle)
+	else:
+		angulo=-np.radians(angle)+math.pi/2
 	return angulo
 
-def cvt_box(box): ####*****Solucion Parche*******######
+####*****Solucion Parche*******###### Por ahora no es necesaria, ya esta arreglado (5/12)
+def cvt_box(box): 
 	blank_image=np.zeros((800,1280,3),np.uint8)
 	cv2.line(blank_image,(int(box[0][0]),int(box[0][1])), (int(box[1][0]),int(box[1][1])), color=(0,255,0), thickness=5)
 	cv2.line(blank_image,(int(box[1][0]),int(box[1][1])), (int(box[2][0]),int(box[2][1])), color=(0,255,0), thickness=5)
@@ -365,7 +365,7 @@ def cvt_box(box): ####*****Solucion Parche*******######
 	box=cv2.cv.BoxPoints(rect)
 	box = np.int0(box)
 	cv2.drawContours(blank_image,[box],0,(0,0,255),2)
-
+	print 'angulo de la caja rect: ',rect[2]
 	cv2.imwrite('blank_i.jpg',blank_image)
 
 	return rect
@@ -568,17 +568,21 @@ while not rospy.is_shutdown():
 	while recortes:
 		recort=recortes.pop()
 		rec=recort[:,:,:3]
-		cv2.imwrite('rec.jpg',rec)
+		#cv2.imwrite('rec.jpg',rec)
 		punto_corte=ptos_corte.pop()
+		#############Prueba acercamiento por recorte para mejorar precision del brazo
+		(pxct,pyct)=pixel_to_baxter(punto_corte,0.3)
+		mover_baxter('base',[pxct,pyct,0.0],[math.pi,0,0])
+		
+		#############
 		prediccion_grasp(rec.astype(np.int32),model_grasp)
 		box=get_points()
 		centro_agarre=centro_grasp(box,punto_corte)
 		(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
+		box[4]=box[4]*-1 #Correccion de angulo, ya que la funcion entrega angulo con signo cambiado
 		print "angulo grasp ",box[4]
-		conv_box=cvt_box(box)
-		angulo_de_grasp=correct_angle(conv_box)
-		move(centro_agarre,angulo_de_grasp)
-		#mover_baxter('base',[x,y,0.0],[math.pi,0,box[4]])
+		move(centro_agarre,box[4])
+
 
 	cv2.imwrite('frame3.jpg',frame3)
 
