@@ -56,7 +56,7 @@ def prediccion(file):
 	elif respuesta==9:
 		herramienta='Taladro'
 	elif respuesta==10:
-		herramienta='Telefono'
+		herramienta='Tijera'
 	return herramienta
 
 def mensaje_matriz_a_pose(T, frame):
@@ -168,7 +168,7 @@ def ucontorno(image):
 		if area<=1000 or y<300 or x<400 or x>880:
 			continue
 
-		cv2.rectangle(image, (x,y),(x+w,y+h),(255,0,255),2)
+		#cv2.rectangle(image, (x,y),(x+w,y+h),(255,0,255),2)
 		ct.append(c)
 	return ct
 
@@ -178,6 +178,7 @@ yi=0
 xcrop=0
 ycrop=0
 ptos_corte=[]
+pto_corte_preciso=[]
 
 #Realiza recortes por cada contorno detectado
 def recortes_img(image, contornos):
@@ -205,6 +206,28 @@ def recortes_img(image, contornos):
 
 	return recortes
 
+def urecorte(image,contorno):
+	rct=[]
+	for c in contorno:
+		x,y,w,h=cv2.boundingRect(c)
+		xc,yc=x+w/2,y+h/2
+		global xi,yi
+		yi=y-margen_img
+		yf=y+h+margen_img
+		xi=x-margen_img
+		xf=x+w+margen_img
+		###
+		xcrop,ycrop=xi,yi
+		pto_corte_preciso.append((xcrop,ycrop))
+		###
+		if yi<0:
+			yi=0
+		if xi<0:
+			xi=0
+		crop=image[yi:yf,xi:xf]
+		rct.append(crop)
+		cv2.imwrite('crop.jpg',crop)
+	return rct
 
 #Reescala las imagenes recortadas para luego ser pasadas al predictor
 def reescalado(recorte):
@@ -390,11 +413,12 @@ def move(punto,angle):
 	print 'desfase ',desfase
 
 	mover_baxter('base',[xdep+desfase,ydep,0.0],[math.pi,0,angle])
-	mover_baxter('base',[xdep+desfase,ydep,-0.18],[math.pi,0,angle])
+	mover_baxter('base',[xdep+desfase,ydep,-0.19],[math.pi,0,angle])
 
 	gripper.open()
 
 	mover_baxter('base',[xdep+desfase,ydep,0.0],[math.pi,0,angle])
+	mover_baxter('base',[x,y,0.0],[math.pi,0,0])
 
 
 def ejecutar_mov(puntos):
@@ -435,9 +459,10 @@ def grasp(crops):
 		#ctm=cv2.cvtColor(cr,cv2.COLOR_BGR2BGRA)
 		grasping(cr)
 
-def centro_grasp(rect_grasp,xycrop):
+def centro_grasp(rect_grasp,xycroppreciso,xycrop):
 	####Calculo del centro del rectangulo de grasping
-	xcrop,ycrop=xycrop
+	xcrop,ycrop=xycroppreciso
+	xxcrop,yycrop=xycrop
 	puntx1,punty1=rect_grasp[0]
 	puntx2,punty2=rect_grasp[1]
 	puntx3,punty3=rect_grasp[2]
@@ -451,6 +476,7 @@ def centro_grasp(rect_grasp,xycrop):
 	punty1,punty2,punty3=int(punty1),int(punty2),int(punty3)
 
 	point_centerx,point_centery=pxmedio+xcrop,pymedio+ycrop
+	p_centrox_dibujo,p_centroy_dibujo=pxmedio+xcrop+xxcrop,pymedio+ycrop+yycrop
 	rect_grasp[0][0],rect_grasp[1][0],rect_grasp[2][0],rect_grasp[3][0]=rect_grasp[0][0]+xcrop,rect_grasp[1][0]+xcrop,rect_grasp[2][0]+xcrop,rect_grasp[3][0]+xcrop
 	rect_grasp[0][1],rect_grasp[1][1],rect_grasp[2][1],rect_grasp[3][1]=rect_grasp[0][1]+ycrop,rect_grasp[1][1]+ycrop,rect_grasp[2][1]+ycrop,rect_grasp[3][1]+ycrop
 
@@ -460,14 +486,27 @@ def centro_grasp(rect_grasp,xycrop):
 	cv2.line(frame3, tuple(rect_grasp[2].astype(int)), tuple(rect_grasp[3].astype(int)), color=(0,255,0), thickness=5)
 	cv2.line(frame3, tuple(rect_grasp[3].astype(int)), tuple(rect_grasp[0].astype(int)), color=(0,0,255), thickness=5)
 
+	#coordenadas para dibujar de manera correcta sobre el frame
+	p_centrox_dibujo,p_centroy_dibujo=pxmedio+xcrop+xxcrop,pymedio+ycrop+yycrop
+	rect_grasp[0][0],rect_grasp[1][0],rect_grasp[2][0],rect_grasp[3][0]=rect_grasp[0][0]+xcrop+xxcrop,rect_grasp[1][0]+xcrop+xxcrop,rect_grasp[2][0]+xcrop+xxcrop,rect_grasp[3][0]+xcrop+xxcrop
+	rect_grasp[0][1],rect_grasp[1][1],rect_grasp[2][1],rect_grasp[3][1]=rect_grasp[0][1]+ycrop+yycrop,rect_grasp[1][1]+ycrop+yycrop,rect_grasp[2][1]+ycrop+yycrop,rect_grasp[3][1]+ycrop+yycrop
+
+	#Dibujo
+	cv2.circle(frame3,(p_centrox_dibujo,p_centroy_dibujo),6,(0,250,0),-1)
+	cv2.line(frame3, tuple(rect_grasp[0].astype(int)), tuple(rect_grasp[1].astype(int)), color=(0,255,0), thickness=5)
+	cv2.line(frame3, tuple(rect_grasp[1].astype(int)), tuple(rect_grasp[2].astype(int)), color=(0,0,255), thickness=5)
+	cv2.line(frame3, tuple(rect_grasp[2].astype(int)), tuple(rect_grasp[3].astype(int)), color=(0,255,0), thickness=5)
+	cv2.line(frame3, tuple(rect_grasp[3].astype(int)), tuple(rect_grasp[0].astype(int)), color=(0,0,255), thickness=5)
+
+
 	return point_centerx,point_centery
 
 ##################################################
 
 #cargar modelo entrenado
 longitud, altura = 100,100
-modelo='./modelo/modelo-32b-20e-2000.h5'
-pesos='./modelo/pesos-32b-20e-2000.h5'
+modelo='./modelo/modelo-32b-25e-2000-corregido-rms.h5'
+pesos='./modelo/pesos-32b-25e-2000-corregido-rms.h5'
 cnn=load_model(modelo)
 cnn.load_weights(pesos)
 
@@ -504,7 +543,7 @@ gripper.calibrate()
 # Pose inicial
 x = 0.47
 y = 0.3
-z = 0.0 
+z = 0.0
 roll = math.pi	#Rotacion x
 pitch = 0.0	#Rotacion y	
 yaw = 0.0		#Rotacion z
@@ -552,17 +591,21 @@ while not rospy.is_shutdown():
 	countours=img_process(frame)
 	print 'contornos: ',len(countours)
 	recortes=recortes_img(frame,countours)
-	cv2.imwrite('recorte.jpg',recortes[0])
+	if recortes:
+		cv2.imwrite('recorte.jpg',recortes[0])
 	print 'recortes: ',len(recortes)
 	nombres=prediccion_obj(recortes)
 	print 'nombres: ',len(nombres)
 	fps=foto
 	puntos=info_and_angles(fps,countours,nombres)
+	cv2.imwrite('fps.jpg',fps)
 	cv2.imwrite('recorte.jpg',recortes[0])
 	print 'puntos: ',len(puntos)
 	print puntos
 	
 	frame3=foto
+
+	print 'Se han encontrado ',len(countours),' objetos'
 
 	################Prueba grasping por cada recorte
 	while recortes:
@@ -573,15 +616,37 @@ while not rospy.is_shutdown():
 		#############Prueba acercamiento por recorte para mejorar precision del brazo
 		(pxct,pyct)=pixel_to_baxter(punto_corte,0.3)
 		mover_baxter('base',[pxct,pyct,0.0],[math.pi,0,0])
-		
-		#############
-		prediccion_grasp(rec.astype(np.int32),model_grasp)
+		ctn=ucontorno(foto)
+		rec_ajustado=urecorte(foto,ctn)
+		rcort=rec_ajustado.pop()
+		rcort=rcort[:,:,:3]
+		punto_preciso_corte=pto_corte_preciso.pop()
+		rospy.sleep(1)
+		prediccion_grasp(rcort.astype(np.int32),model_grasp)
 		box=get_points()
-		centro_agarre=centro_grasp(box,punto_corte)
+		print 'caja puntos prueba error ',box
+		centro_agarre=centro_grasp(box,punto_preciso_corte,punto_corte)
 		(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
 		box[4]=box[4]*-1 #Correccion de angulo, ya que la funcion entrega angulo con signo cambiado
 		print "angulo grasp ",box[4]
+		pose_i = [pxct, pyct, z, roll, pitch, yaw]
+		pose = [pxct, pyct, z, roll, pitch, yaw]
+		cv2.imwrite('frame3.jpg',frame3)
 		move(centro_agarre,box[4])
+
+		#Actualizo posicion inicial
+		pose_i = [x, y, z, roll, pitch, yaw]
+		pose = [x, y, z, roll, pitch, yaw]
+
+		#############
+		#prediccion_grasp(rec.astype(np.int32),model_grasp)
+		#box=get_points()
+		#print 'caja puntos prueba error ',box
+		#centro_agarre=centro_grasp(box,punto_corte)
+		#(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
+		#box[4]=box[4]*-1 #Correccion de angulo, ya que la funcion entrega angulo con signo cambiado
+		#print "angulo grasp ",box[4]
+		#move(centro_agarre,box[4])
 
 
 	cv2.imwrite('frame3.jpg',frame3)
@@ -609,7 +674,7 @@ while not rospy.is_shutdown():
 		#Calcula el Rectangulo de area minima del contorno calculado
 		if len(contorno)!=0:
 			rect=cv2.minAreaRect(contorno[0])			
-		else: 
+		else:
 			continue
 		#Guarda el centro del rectangulo minimo
 		ppp=[]
