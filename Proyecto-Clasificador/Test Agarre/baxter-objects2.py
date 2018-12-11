@@ -475,22 +475,23 @@ def centro_grasp(rect_grasp,xycroppreciso,xycrop):
 	puntx1,puntx2,puntx3=int(puntx1),int(puntx2),int(puntx3)
 	punty1,punty2,punty3=int(punty1),int(punty2),int(punty3)
 
+	#coordenadas para dibujar sobre el frame desplazado
 	point_centerx,point_centery=pxmedio+xcrop,pymedio+ycrop
-	p_centrox_dibujo,p_centroy_dibujo=pxmedio+xcrop+xxcrop,pymedio+ycrop+yycrop
 	rect_grasp[0][0],rect_grasp[1][0],rect_grasp[2][0],rect_grasp[3][0]=rect_grasp[0][0]+xcrop,rect_grasp[1][0]+xcrop,rect_grasp[2][0]+xcrop,rect_grasp[3][0]+xcrop
 	rect_grasp[0][1],rect_grasp[1][1],rect_grasp[2][1],rect_grasp[3][1]=rect_grasp[0][1]+ycrop,rect_grasp[1][1]+ycrop,rect_grasp[2][1]+ycrop,rect_grasp[3][1]+ycrop
 
-	cv2.circle(frame3,(point_centerx,point_centery),6,(0,250,0),-1)
-	cv2.line(frame3, tuple(rect_grasp[0].astype(int)), tuple(rect_grasp[1].astype(int)), color=(0,255,0), thickness=5)
-	cv2.line(frame3, tuple(rect_grasp[1].astype(int)), tuple(rect_grasp[2].astype(int)), color=(0,0,255), thickness=5)
-	cv2.line(frame3, tuple(rect_grasp[2].astype(int)), tuple(rect_grasp[3].astype(int)), color=(0,255,0), thickness=5)
-	cv2.line(frame3, tuple(rect_grasp[3].astype(int)), tuple(rect_grasp[0].astype(int)), color=(0,0,255), thickness=5)
+#	cv2.circle(frame2,(point_centerx,point_centery),6,(0,250,0),-1)
+#	cv2.line(frame2, tuple(rect_grasp[0].astype(int)), tuple(rect_grasp[1].astype(int)), color=(0,255,0), thickness=5)
+#	cv2.line(frame2, tuple(rect_grasp[1].astype(int)), tuple(rect_grasp[2].astype(int)), color=(0,0,255), thickness=5)
+#	cv2.line(frame2, tuple(rect_grasp[2].astype(int)), tuple(rect_grasp[3].astype(int)), color=(0,255,0), thickness=5)
+#	cv2.line(frame2, tuple(rect_grasp[3].astype(int)), tuple(rect_grasp[0].astype(int)), color=(0,0,255), thickness=5)
 
-	#coordenadas para dibujar de manera correcta sobre el frame
-	p_centrox_dibujo,p_centroy_dibujo=pxmedio+xcrop+xxcrop,pymedio+ycrop+yycrop
-	rect_grasp[0][0],rect_grasp[1][0],rect_grasp[2][0],rect_grasp[3][0]=rect_grasp[0][0]+xcrop+xxcrop,rect_grasp[1][0]+xcrop+xxcrop,rect_grasp[2][0]+xcrop+xxcrop,rect_grasp[3][0]+xcrop+xxcrop
-	rect_grasp[0][1],rect_grasp[1][1],rect_grasp[2][1],rect_grasp[3][1]=rect_grasp[0][1]+ycrop+yycrop,rect_grasp[1][1]+ycrop+yycrop,rect_grasp[2][1]+ycrop+yycrop,rect_grasp[3][1]+ycrop+yycrop
-
+	
+	#coordenadas para dibujar de manera correcta sobre el frame general
+	p_centrox_dibujo,p_centroy_dibujo=pxmedio+xxcrop,pymedio+yycrop
+	rect_grasp[0][0],rect_grasp[1][0],rect_grasp[2][0],rect_grasp[3][0]=rect_grasp[0][0]+xxcrop-xcrop,rect_grasp[1][0]+xxcrop-xcrop,rect_grasp[2][0]+xxcrop-xcrop,rect_grasp[3][0]+xxcrop-xcrop
+	rect_grasp[0][1],rect_grasp[1][1],rect_grasp[2][1],rect_grasp[3][1]=rect_grasp[0][1]+yycrop-ycrop,rect_grasp[1][1]+yycrop-ycrop,rect_grasp[2][1]+yycrop-ycrop,rect_grasp[3][1]+yycrop-ycrop
+	
 	#Dibujo
 	cv2.circle(frame3,(p_centrox_dibujo,p_centroy_dibujo),6,(0,250,0),-1)
 	cv2.line(frame3, tuple(rect_grasp[0].astype(int)), tuple(rect_grasp[1].astype(int)), color=(0,255,0), thickness=5)
