@@ -263,7 +263,7 @@ def info_and_angles(img,contornos,nombres):
 	for c in contornos:
 		x,y,w,h=cv2.boundingRect(c)
 		cv2.rectangle(img, (x,y),(x+w,y+h),(255,0,0),2)
-		cv2.putText(img, nombres[j],(x,y),cv2.FONT_HERSHEY_SIMPLEX,0.4,np.array([0,0,0],dtype=np.uint8).tolist(),1,8)
+		cv2.putText(img, nombres[j],(x,y),cv2.FONT_HERSHEY_SIMPLEX,0.8,np.array([0,0,0],dtype=np.uint8).tolist(),1,8)
 
 		#Rectangulo de area minima
 		rect=cv2.minAreaRect(c)
@@ -345,7 +345,7 @@ def info_and_angles(img,contornos,nombres):
 
 		puntos_agarre.append((xcentral,ycentral))
 
-		cv2.circle(img,(xcentral,ycentral),6,(255,0,255),-1)
+		#cv2.circle(img,(xcentral,ycentral),6,(255,0,255),-1)
 
 		#circulo en el lado mas corto
 		#cv2.circle(img,(xcs,ycs),6,(0,255,0),-1)
@@ -480,11 +480,11 @@ def centro_grasp(rect_grasp,xycroppreciso,xycrop):
 	rect_grasp[0][0],rect_grasp[1][0],rect_grasp[2][0],rect_grasp[3][0]=rect_grasp[0][0]+xcrop,rect_grasp[1][0]+xcrop,rect_grasp[2][0]+xcrop,rect_grasp[3][0]+xcrop
 	rect_grasp[0][1],rect_grasp[1][1],rect_grasp[2][1],rect_grasp[3][1]=rect_grasp[0][1]+ycrop,rect_grasp[1][1]+ycrop,rect_grasp[2][1]+ycrop,rect_grasp[3][1]+ycrop
 
-#	cv2.circle(frame2,(point_centerx,point_centery),6,(0,250,0),-1)
-#	cv2.line(frame2, tuple(rect_grasp[0].astype(int)), tuple(rect_grasp[1].astype(int)), color=(0,255,0), thickness=5)
-#	cv2.line(frame2, tuple(rect_grasp[1].astype(int)), tuple(rect_grasp[2].astype(int)), color=(0,0,255), thickness=5)
-#	cv2.line(frame2, tuple(rect_grasp[2].astype(int)), tuple(rect_grasp[3].astype(int)), color=(0,255,0), thickness=5)
-#	cv2.line(frame2, tuple(rect_grasp[3].astype(int)), tuple(rect_grasp[0].astype(int)), color=(0,0,255), thickness=5)
+#	cv2.circle(frame3,(point_centerx,point_centery),6,(0,250,0),-1)
+#	cv2.line(frame3, tuple(rect_grasp[0].astype(int)), tuple(rect_grasp[1].astype(int)), color=(0,255,0), thickness=5)
+#	cv2.line(frame3, tuple(rect_grasp[1].astype(int)), tuple(rect_grasp[2].astype(int)), color=(0,0,255), thickness=5)
+#	cv2.line(frame3, tuple(rect_grasp[2].astype(int)), tuple(rect_grasp[3].astype(int)), color=(0,255,0), thickness=5)
+#	cv2.line(frame3, tuple(rect_grasp[3].astype(int)), tuple(rect_grasp[0].astype(int)), color=(0,0,255), thickness=5)
 
 	
 	#coordenadas para dibujar de manera correcta sobre el frame general
@@ -600,7 +600,6 @@ while not rospy.is_shutdown():
 	fps=foto
 	puntos=info_and_angles(fps,countours,nombres)
 	cv2.imwrite('fps.jpg',fps)
-	cv2.imwrite('recorte.jpg',recortes[0])
 	print 'puntos: ',len(puntos)
 	print puntos
 	
@@ -613,10 +612,11 @@ while not rospy.is_shutdown():
 	print sss
 	print 'Modos disponible: 1-Busqueda por seleccion, 2-Busqueda automatica'
 	modo=input("Seleccione modo de busqueda ")
-	while(modo!=1 and modo!=2):
+	while(modo!=1 and modo!=2 and modo!=3):
 		modo=raw_input("Seleccione modo de busqueda ")
 
 	if modo==1:
+	###############Modo de busqueda por seleccion, se elige el objeto a recoger y se ejecuta la accion
 		inp=raw_input("Que desea recoger? ")
 		j=0
 		for i in nombres:
@@ -627,9 +627,10 @@ while not rospy.is_shutdown():
 
 		while objetos_solicitados:
 			obs=objetos_solicitados.pop()
-			punto_objetivo=puntos[obs]
+			punto_objetivo=ptos_corte[obs]
+			#punto_objetivo=puntos[obs]
 			(pxo,pyo)=pixel_to_baxter(punto_objetivo,0.3)
-			mover_baxter('base',[pxo-0.05,pyo,0.0],[math.pi,0,0])
+			mover_baxter('base',[pxo+0.05,pyo+0.1,0.0],[math.pi,0,0])
 			rospy.sleep(1)
 			cv2.imwrite('acercamiento.jpg',foto)
 			ctrn=ucontorno(foto)
@@ -643,8 +644,8 @@ while not rospy.is_shutdown():
 			centro_agarre=centro_grasp(box,punto_preciso_corte,punto_objetivo)
 			(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
 			box[4]=box[4]*-1
-			pose_i = [pxo-0.05, pyo, z, roll, pitch, yaw]
-			pose = [pxo-0.05, pyo, z, roll, pitch, yaw]
+			pose_i = [pxo+0.05, pyo+0.1, z, roll, pitch, yaw]
+			pose = [pxo+0.05, pyo+0.1, z, roll, pitch, yaw]
 			move(centro_agarre,box[4])
 			cv2.imwrite('frame3.jpg',frame3)
 			#Actualizo posicion inicial
@@ -652,7 +653,7 @@ while not rospy.is_shutdown():
 			pose = [x, y, z, roll, pitch, yaw]
 
 	if modo==2:
-	################Prueba grasping por cada recorte
+	################Modo automatico, se desplaza a cada recorte y recoge el objeto
 		while recortes:
 			recort=recortes.pop()
 			rec=recort[:,:,:3]
@@ -660,7 +661,8 @@ while not rospy.is_shutdown():
 			punto_corte=ptos_corte.pop()
 			#############Prueba acercamiento por recorte para mejorar precision del brazo
 			(pxct,pyct)=pixel_to_baxter(punto_corte,0.3)
-			#mover_baxter('base',[pxct,pyct,0.0],[math.pi,0,0])
+			mover_baxter('base',[pxct+0.05,pyct+0.1,0.0],[math.pi,0,0])
+			cv2.imwrite('acercamiento.jpg',foto)
 			ctn=ucontorno(foto)
 			rec_ajustado=urecorte(foto,ctn)
 			rcort=rec_ajustado.pop()
@@ -669,16 +671,13 @@ while not rospy.is_shutdown():
 			rospy.sleep(1)
 			prediccion_grasp(rcort.astype(np.int32),model_grasp)
 			box=get_points()
-			print 'caja puntos prueba error ',box
 			centro_agarre=centro_grasp(box,punto_preciso_corte,punto_corte)
 			(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
 			box[4]=box[4]*-1 #Correccion de angulo, ya que la funcion entrega angulo con signo cambiado
-			print "angulo grasp ",box[4]
-			pose_i = [pxct, pyct, z, roll, pitch, yaw]
-			pose = [pxct, pyct, z, roll, pitch, yaw]
+			pose_i = [pxct+0.05, pyct+0.1, z, roll, pitch, yaw]
+			pose = [pxct+0.05, pyct+0.1, z, roll, pitch, yaw]
 			cv2.imwrite('frame3.jpg',frame3)
 			move(centro_agarre,box[4])
-
 			#Actualizo posicion inicial
 			pose_i = [x, y, z, roll, pitch, yaw]
 			pose = [x, y, z, roll, pitch, yaw]
@@ -693,12 +692,44 @@ while not rospy.is_shutdown():
 			#print "angulo grasp ",box[4]
 			#move(centro_agarre,box[4])
 
+	if modo==3:
+		copia_puntos=puntos_pre
+		#Prueba, acercamiento por objeto
+		while copia_puntos:   #se acerca a cada punto donde detecto un objeto el analisis inicial
+			point=copia_puntos.pop()
+			(pointx,pointy)=pixel_to_baxter(point,0.3)
+			mover_baxter('base',[pointx-0.05,pointy+0.05,0.0],[math.pi,0,0])
+			contorno=ucontorno(foto)  #recalcula el contorno y lo retorna
+			print 'contorno: ',len(contorno)
+			rospy.sleep(1)
+			cv2.imwrite('ct.jpg',foto)
+
+			#Calcula el Rectangulo de area minima del contorno calculado
+			if len(contorno)!=0:
+				rect=cv2.minAreaRect(contorno[0])			
+			else:
+				continue
+			#Guarda el centro del rectangulo minimo
+			ppp=[]
+			ppp.append(rect[0])
+			#Actualiza la nueva pose donde se encuentra el brazo
+			pose_i = [pointx-0.05, pointy+0.05, z, roll, pitch, yaw]
+			pose = [pointx-0.05, pointy+0.05, z, roll, pitch, yaw]
+			angulo_corregido=correct_angle(rect)  #Corrige el angulo en la nueva posicion
+
+			print ppp
+			print angulo_corregido
+			move(rect[0],angulo_corregido)
+
+			#Actualizo posicion inicial
+			pose_i = [x, y, z, roll, pitch, yaw]
+			pose = [x, y, z, roll, pitch, yaw]
+			#mover_baxter('base',[x,y,0.0],[math.pi,0,0])
+			print 'centro: ',rect[0]
+		
 
 	cv2.imwrite('frame3.jpg',frame3)
 
-	print 'puntos pre: ', puntos_pre
-
-	copia_puntos=puntos_pre
 	rospy.sleep(2)
 
 	imagen_camara=cv2.resize(frame3,(1024,600))
@@ -706,39 +737,6 @@ while not rospy.is_shutdown():
 	cv2.imwrite('cam.jpg',imagen_camara)
 	send_image('cam.jpg')
 
-	#Prueba, acercamiento por objeto
-	while copia_puntos:   #se acerca a cada punto donde detecto un objeto el analisis inicial
-		point=copia_puntos.pop()
-		(pointx,pointy)=pixel_to_baxter(point,0.3)
-		#mover_baxter('base',[pointx-0.05,pointy+0.05,0.0],[math.pi,0,0])
-		contorno=ucontorno(foto)  #recalcula el contorno y lo retorna
-		print 'contorno: ',len(contorno)
-		rospy.sleep(1)
-		cv2.imwrite('ct.jpg',foto)
-
-		#Calcula el Rectangulo de area minima del contorno calculado
-		if len(contorno)!=0:
-			rect=cv2.minAreaRect(contorno[0])			
-		else:
-			continue
-		#Guarda el centro del rectangulo minimo
-		ppp=[]
-		ppp.append(rect[0])
-		#Actualiza la nueva pose donde se encuentra el brazo
-		pose_i = [pointx-0.05, pointy+0.05, z, roll, pitch, yaw]
-		pose = [pointx-0.05, pointy+0.05, z, roll, pitch, yaw]
-		angulo_corregido=correct_angle(rect)  #Corrige el angulo en la nueva posicion
-
-		print ppp
-		print angulo_corregido
-		#move(ppp,angulo_corregido)
-
-		#Actualizo posicion inicial
-		pose_i = [x, y, z, roll, pitch, yaw]
-		pose = [x, y, z, roll, pitch, yaw]
-		#mover_baxter('base',[x,y,0.0],[math.pi,0,0])
-		print 'centro: ',rect[0]
-	
 	print 'frame shape',frame.shape
 	cv2.cvtColor(frame,cv2.COLOR_BGRA2BGR)
 	print 'nuevo tamano',frame.shape
