@@ -420,6 +420,41 @@ def move(punto,angle):
 	mover_baxter('base',[xdep+desfase,ydep,0.0],[math.pi,0,angle])
 	mover_baxter('base',[x,y,0.0],[math.pi,0,0])
 
+def move(punto,angle,nombre):
+	k=0;
+	xdep=0.5
+	ydep=0.8
+	#pto=punto.pop()
+	#(px,py)=pixel_to_baxter(pto,0.3)
+
+	if (nombre=='Alicate' or nombre=='Cuchillo' or nombre=='Destornillador' or nombre=='Llave'):
+		deposito=(0.5470207284933092, 0.7550064358491599)
+	
+	if (nombre=='Calculadora' or nombre=='Gamepad' or nombre=='Mouse'):
+		deposito=(0.31195328392783256, 0.6652463368344972)
+
+	if (nombre=='Martillo' or nombre=='Taladro' or nombre=='Tijera'):
+		deposito=(0.309293240857769, 0.8451825272761175)
+
+
+
+	(px,py)=pixel_to_baxter(punto,0.3)
+	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
+	mover_baxter('base',[px,py,-0.21],[math.pi,0,angle])
+
+	gripper.close()
+	rospy.sleep(0.4)
+
+	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
+
+	mover_baxter('base',[deposito[0],deposito[1],0.0],[math.pi,0,angle])
+	mover_baxter('base',[deposito[0],deposito[1],-0.19],[math.pi,0,angle])
+
+	gripper.open()
+
+	mover_baxter('base',[deposito[0],deposito[1],0.0],[math.pi,0,angle])
+	mover_baxter('base',[x,y,0.0],[math.pi,0,0])
+
 
 def ejecutar_mov(puntos):
 	k=0
@@ -586,6 +621,10 @@ while not rospy.is_shutdown():
 	while np.all(foto) == None:
 		continue 
 
+#	deposito1=[x=0.5470207284933092,y=0.7550064358491599]
+#	deposito2=[x=0.31195328392783256, y=0.6652463368344972]
+#	deposito3=[x=0.309293240857769, y=0.8451825272761175]
+
 	frame = foto
 	hh,ww = foto.shape[:2]
 	roi=foto[300:hh ,0:ww]
@@ -610,10 +649,16 @@ while not rospy.is_shutdown():
 	print 'Objetos encontrados: '
 	sss=Counter(nombres)
 	print sss
+	print 'tipo de dato ',type(sss)
+
+
+
 	print 'Modos disponible: 1-Busqueda por seleccion, 2-Busqueda automatica'
 	modo=input("Seleccione modo de busqueda ")
 	while(modo!=1 and modo!=2 and modo!=3):
 		modo=raw_input("Seleccione modo de busqueda ")
+		if modo>=4:
+			break
 
 	if modo==1:
 	###############Modo de busqueda por seleccion, se elige el objeto a recoger y se ejecuta la accion
@@ -646,8 +691,13 @@ while not rospy.is_shutdown():
 			box[4]=box[4]*-1
 			pose_i = [pxo+0.05, pyo+0.1, z, roll, pitch, yaw]
 			pose = [pxo+0.05, pyo+0.1, z, roll, pitch, yaw]
-			move(centro_agarre,box[4])
+			move(centro_agarre,box[4],inp)
 			cv2.imwrite('frame3.jpg',frame3)
+			########
+			imagen_camara=cv2.resize(frame3,(1024,600))
+			cv2.imwrite('cam.jpg',imagen_camara)
+			send_image('cam.jpg')
+			########
 			#Actualizo posicion inicial
 			pose_i = [x, y, z, roll, pitch, yaw]
 			pose = [x, y, z, roll, pitch, yaw]
@@ -657,6 +707,7 @@ while not rospy.is_shutdown():
 		while recortes:
 			recort=recortes.pop()
 			rec=recort[:,:,:3]
+			n_obj=nombres.pop()
 			#cv2.imwrite('rec.jpg',rec)
 			punto_corte=ptos_corte.pop()
 			#############Prueba acercamiento por recorte para mejorar precision del brazo
@@ -677,7 +728,7 @@ while not rospy.is_shutdown():
 			pose_i = [pxct+0.05, pyct+0.1, z, roll, pitch, yaw]
 			pose = [pxct+0.05, pyct+0.1, z, roll, pitch, yaw]
 			cv2.imwrite('frame3.jpg',frame3)
-			move(centro_agarre,box[4])
+			move(centro_agarre,box[4],n_obj)
 			#Actualizo posicion inicial
 			pose_i = [x, y, z, roll, pitch, yaw]
 			pose = [x, y, z, roll, pitch, yaw]
@@ -724,9 +775,8 @@ while not rospy.is_shutdown():
 			#Actualizo posicion inicial
 			pose_i = [x, y, z, roll, pitch, yaw]
 			pose = [x, y, z, roll, pitch, yaw]
-			#mover_baxter('base',[x,y,0.0],[math.pi,0,0])
 			print 'centro: ',rect[0]
-		
+
 
 	cv2.imwrite('frame3.jpg',frame3)
 
