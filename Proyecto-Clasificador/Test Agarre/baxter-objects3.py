@@ -159,9 +159,17 @@ def ucontorno(image):
 	kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
 	dilated = cv2.dilate(canny,kernel)
 
+	centro_garra=(640,400)
+	distancias=[]
+	centros=[]
+	ctn=[]
 	(contornos,_) = cv2.findContours(canny.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 	for c in contornos:
 		x,y,w,h=cv2.boundingRect(c)
+		#Rectangulo de area minima
+		rect=cv2.minAreaRect(c)
+		box=cv2.cv.BoxPoints(rect)
+		box=np.int0(box)
 
 		area=w*h
 		#Se limita la zona para ignorar contornos en los bordes
@@ -169,8 +177,23 @@ def ucontorno(image):
 			continue
 
 		#cv2.rectangle(image, (x,y),(x+w,y+h),(255,0,255),2)
+		centros.append(box[0])
 		ct.append(c)
-	return ct
+
+	if len(centros)>1:
+		i=0
+		for c in ct:
+			dist= hypot(centro_garra[0]-centros[i][0],centro_garra[1]-centros[i][1])
+			distancias.append(dist)
+			i=i+1
+		print 'distancias a cada punto ',distancias
+		dist_min=min(distancias)
+		cnt_final=ct[distancias.index(dist_min)]
+		ctn.append(cnt_final)
+	else:
+		ctn=ct
+
+	return ctn
 
 xi=0
 yi=0
@@ -405,6 +428,7 @@ def move(punto,angle):
 	mover_baxter('base',[px,py,-0.21],[math.pi,0,angle])
 
 	gripper.close()
+
 	rospy.sleep(0.4)
 
 	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
@@ -433,7 +457,7 @@ def move(punto,angle,nombre):
 	if (nombre=='Calculadora' or nombre=='Gamepad' or nombre=='Mouse'):
 		deposito=(0.31195328392783256, 0.6652463368344972)
 
-	if (nombre=='Martillo' or nombre=='Taladro' or nombre=='Tijera'):
+	if (nombre=='Martillo' or nombre=='Taladro' or nombre=='Tijera' or nombre=='Reloj'):
 		deposito=(0.309293240857769, 0.8451825272761175)
 
 
@@ -443,17 +467,23 @@ def move(punto,angle,nombre):
 	mover_baxter('base',[px,py,-0.21],[math.pi,0,angle])
 
 	gripper.close()
-	rospy.sleep(0.4)
 
+	rospy.sleep(0.4)
 	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
 
-	mover_baxter('base',[deposito[0],deposito[1],0.0],[math.pi,0,angle])
-	mover_baxter('base',[deposito[0],deposito[1],-0.19],[math.pi,0,angle])
+	if gripper.force()==0:
+		print 'no hay nada en el gripper'
+		gripper.open()	
+		mover_baxter('base',[x,y,0.0],[math.pi,0,0])
 
-	gripper.open()
+	else:	
+		mover_baxter('base',[deposito[0],deposito[1],0.0],[math.pi,0,angle])
+		mover_baxter('base',[deposito[0],deposito[1],-0.19],[math.pi,0,angle])
 
-	mover_baxter('base',[deposito[0],deposito[1],0.0],[math.pi,0,angle])
-	mover_baxter('base',[x,y,0.0],[math.pi,0,0])
+		gripper.open()
+
+		mover_baxter('base',[deposito[0],deposito[1],0.0],[math.pi,0,angle])
+		mover_baxter('base',[x,y,0.0],[math.pi,0,0])
 
 
 def ejecutar_mov(puntos):
@@ -677,6 +707,7 @@ while not rospy.is_shutdown():
 			(pxo,pyo)=pixel_to_baxter(punto_objetivo,0.3)
 			mover_baxter('base',[pxo+0.05,pyo+0.1,0.0],[math.pi,0,0])
 			rospy.sleep(1)
+			cv2.circle(foto,(640,400),6,(255,123,255),-1)
 			cv2.imwrite('acercamiento.jpg',foto)
 			ctrn=ucontorno(foto)
 			recorte_aj=urecorte(foto,ctrn)
