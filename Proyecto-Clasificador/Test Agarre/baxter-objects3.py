@@ -129,15 +129,16 @@ def img_process(image):
 	gray= cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 	#gray= cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 	blur= cv2.GaussianBlur(gray,(5,5),0)
-	canny= cv2.Canny(blur,50,200)
+	#canny= cv2.Canny(blur,50,200)
+	canny= cv2.Canny(blur,20,100)
 
 	#Morphologic, para completar bordes
 	kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
 	dilated = cv2.dilate(canny,kernel)
 
-	#cv2.imshow('camara dilatada',dilated)
-
-	(contornos,_) = cv2.findContours(canny.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+	cv2.imwrite('cam_dilated.jpg',dilated)
+	
+	(contornos,_) = cv2.findContours(dilated,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 	cont_validos=[]
 	for c in contornos:
 		x,y,w,h=cv2.boundingRect(c)
@@ -182,8 +183,9 @@ def ucontorno(image):
 
 	if len(centros)>1:
 		i=0
-		for c in ct:
-			dist= hypot(centro_garra[0]-centros[i][0],centro_garra[1]-centros[i][1])
+		for c in centros:
+			#dist= hypot(centro_garra[0]-centros[i][0],centro_garra[1]-centros[i][1])
+			dist= hypot(centro_garra[0]-c[0],centro_garra[1]-c[1])
 			distancias.append(dist)
 			i=i+1
 		print 'distancias a cada punto ',distancias
@@ -267,8 +269,8 @@ def reescalado(recorte):
 
 	color = [255, 255, 255]
 		
-	new_im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT,value=color)
-
+	new_im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_REPLICATE,value=color)
+	cv2.imwrite('reescalado.jpg',new_im)
 	return new_im
 
 #Prediccion de Objetos
@@ -584,7 +586,7 @@ pub = rospy.Publisher('/robot/xdisplay', Image, latch=True, queue_size=10)
 cam = baxter_interface.camera.CameraController("left_hand_camera")
 cam.open()
 cam.resolution = cam.MODES[0]
-#cam.exposure            = -1             # range, 0-100 auto = -1
+cam.exposure            = -1             # range, 0-100 auto = -1
 #cam.gain                = -1             # range, 0-79 auto = -1
 #cam.white_balance_blue  = -1             # range 0-4095, auto = -1
 #cam.white_balance_green = -1             # range 0-4095, auto = -1
@@ -661,8 +663,6 @@ while not rospy.is_shutdown():
 	countours=img_process(frame)
 	print 'contornos: ',len(countours)
 	recortes=recortes_img(frame,countours)
-	if recortes:
-		cv2.imwrite('recorte.jpg',recortes[0])
 	print 'recortes: ',len(recortes)
 	nombres=prediccion_obj(recortes)
 	print 'nombres: ',len(nombres)
