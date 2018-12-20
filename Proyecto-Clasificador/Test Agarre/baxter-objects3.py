@@ -154,7 +154,7 @@ def ucontorno(image):
 	gray= cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 	#gray= cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 	blur= cv2.GaussianBlur(gray,(5,5),0)
-	canny= cv2.Canny(blur,50,200)
+	canny= cv2.Canny(blur,20,100)
 
 	#Morphologic, para completar bordes
 	kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
@@ -164,7 +164,7 @@ def ucontorno(image):
 	distancias=[]
 	centros=[]
 	ctn=[]
-	(contornos,_) = cv2.findContours(canny.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+	(contornos,_) = cv2.findContours(dilated,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 	for c in contornos:
 		x,y,w,h=cv2.boundingRect(c)
 		#Rectangulo de area minima
@@ -174,7 +174,8 @@ def ucontorno(image):
 
 		area=w*h
 		#Se limita la zona para ignorar contornos en los bordes
-		if area<=1000 or y<300 or x<400 or x>880:
+		if area<=1000:
+		#if area<=1000 or y<300 or x<400 or x>880:
 			continue
 
 		#cv2.rectangle(image, (x,y),(x+w,y+h),(255,0,255),2)
@@ -188,7 +189,7 @@ def ucontorno(image):
 			dist= hypot(centro_garra[0]-c[0],centro_garra[1]-c[1])
 			distancias.append(dist)
 			i=i+1
-		print 'distancias a cada punto ',distancias
+		#print 'distancias a cada punto ',distancias
 		dist_min=min(distancias)
 		cnt_final=ct[distancias.index(dist_min)]
 		ctn.append(cnt_final)
@@ -237,10 +238,10 @@ def urecorte(image,contorno):
 		x,y,w,h=cv2.boundingRect(c)
 		xc,yc=x+w/2,y+h/2
 		global xi,yi
-		yi=y-margen_img
-		yf=y+h+margen_img
-		xi=x-margen_img
-		xf=x+w+margen_img
+		yi=y-margen_img+10
+		yf=y+h+margen_img-10
+		xi=x-margen_img+10
+		xf=x+w+margen_img-10
 		###
 		xcrop,ycrop=xi,yi
 		pto_corte_preciso.append((xcrop,ycrop))
@@ -427,7 +428,7 @@ def move(punto,angle):
 	#(px,py)=pixel_to_baxter(pto,0.3)
 	(px,py)=pixel_to_baxter(punto,0.3)
 	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
-	mover_baxter('base',[px,py,-0.21],[math.pi,0,angle])
+	mover_baxter('base',[px,py,-0.35],[math.pi,0,angle])
 
 	gripper.close()
 
@@ -710,13 +711,18 @@ while not rospy.is_shutdown():
 			cv2.circle(foto,(640,400),6,(255,123,255),-1)
 			cv2.imwrite('acercamiento.jpg',foto)
 			ctrn=ucontorno(foto)
+			print 'size ucontorno ',len(ctrn)
 			recorte_aj=urecorte(foto,ctrn)
+			print 'size recorte_aj ',len(recorte_aj)
 			rct_u=recorte_aj.pop()
+			rctu=rct_u
 			rct_u=rct_u[:,:,:3]
 			punto_preciso_corte=pto_corte_preciso.pop()
 			rospy.sleep(0.5)
 			prediccion_grasp(rct_u.astype(np.int32),model_grasp)
 			box=get_points()
+			
+			cv2.imwrite('rct_u.jpg',rctu)
 			centro_agarre=centro_grasp(box,punto_preciso_corte,punto_objetivo)
 			(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
 			box[4]=box[4]*-1
@@ -826,7 +832,7 @@ while not rospy.is_shutdown():
 	print 'nuevo tamano 2',frame2.shape
 	print 'type ',type(frame2) 
 	#grasping(frame2.astype(np.int32))
-	cv2.imwrite('test.jpg',frame2)
+	#cv2.imwrite('test.jpg',frame2)
 
 
 	del ct[:]  #ct= arreglo que almacena contorno detectado temporalmente

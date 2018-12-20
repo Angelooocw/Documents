@@ -1,18 +1,4 @@
-'''
-Code to run grasp detection given an image using the model learnt in
-https://arxiv.org/pdf/1610.01685v1.pdf
 
-Dependencies:   Python 2.7
-                argparse ('pip install argparse')
-                cv2 ('conda install -c menpo opencv=2.4.11' or install opencv from source)
-                numpy ('pip install numpy' or 'conda install numpy')
-                tensorflow (version 0.9)
-
-Template run:
-    python grasp_image.py --im {'Image path'} --model {'Model path'} --nbest {1,2,...} --nsamples {1,2,...} --gscale {0, ..., 1.0} --gpu {-1,0,1,...}
-Example run:
-    python grasp_image.py --im ./approach.jpg --model ./models/Grasp_model --nbest 100 --nsamples 250 --gscale 0.1 --gpu 0
-'''
 import argparse
 import cv2
 import numpy as np
@@ -23,6 +9,7 @@ import time
 puntos=[]#Contiene los 4 puntos del rectangulo de agarre y el angulo de inclinacion en la ultima posicion del arreglo
 
 def drawRectangle(I, h, w, t, gsize=300):
+	del puntos[:] #Para asegurar que esta vacio al momento de insertar los puntos
 	I_temp = I
 	grasp_l = gsize/2.5
 	grasp_w = gsize/5.0
@@ -53,7 +40,7 @@ batchsize=0
 nbest=1
 def init_model():
     model_path='models/Grasp_model'
-    nsamples=250
+    nsamples=300
 
     max_batchsize = 128
     gpu_id=-1
@@ -116,4 +103,3 @@ def prediccion_grasp(I,G):
 
 def get_points():
 	return puntos
-
