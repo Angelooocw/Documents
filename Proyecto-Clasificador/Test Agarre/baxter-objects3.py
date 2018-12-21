@@ -228,7 +228,7 @@ def recortes_img(image, contornos):
 
 		crop=image[yi:yf,xi:xf]
 		recortes.append(crop)
-		cv2.imwrite('crop.jpg',crop)
+		cv2.imwrite('crop1.jpg',crop)
 
 	return recortes
 
@@ -252,7 +252,7 @@ def urecorte(image,contorno):
 			xi=0
 		crop=image[yi:yf,xi:xf]
 		rct.append(crop)
-		cv2.imwrite('crop.jpg',crop)
+		cv2.imwrite('cropu.jpg',crop)
 	return rct
 
 #Reescala las imagenes recortadas para luego ser pasadas al predictor
@@ -428,7 +428,7 @@ def move(punto,angle):
 	#(px,py)=pixel_to_baxter(pto,0.3)
 	(px,py)=pixel_to_baxter(punto,0.3)
 	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
-	mover_baxter('base',[px,py,-0.35],[math.pi,0,angle])
+	mover_baxter('base',[px,py,-0.22],[math.pi,0,angle])
 
 	gripper.close()
 
@@ -467,11 +467,11 @@ def move(punto,angle,nombre):
 
 	(px,py)=pixel_to_baxter(punto,0.3)
 	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
-	mover_baxter('base',[px,py,-0.21],[math.pi,0,angle])
+	mover_baxter('base',[px,py,-0.22],[math.pi,0,angle])
 
 	gripper.close()
 
-	rospy.sleep(0.4)
+	rospy.sleep(0.6)
 	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
 
 	if gripper.force()==0:
@@ -548,11 +548,11 @@ def centro_grasp(rect_grasp,xycroppreciso,xycrop):
 	rect_grasp[0][0],rect_grasp[1][0],rect_grasp[2][0],rect_grasp[3][0]=rect_grasp[0][0]+xcrop,rect_grasp[1][0]+xcrop,rect_grasp[2][0]+xcrop,rect_grasp[3][0]+xcrop
 	rect_grasp[0][1],rect_grasp[1][1],rect_grasp[2][1],rect_grasp[3][1]=rect_grasp[0][1]+ycrop,rect_grasp[1][1]+ycrop,rect_grasp[2][1]+ycrop,rect_grasp[3][1]+ycrop
 
-#	cv2.circle(frame3,(point_centerx,point_centery),6,(0,250,0),-1)
-#	cv2.line(frame3, tuple(rect_grasp[0].astype(int)), tuple(rect_grasp[1].astype(int)), color=(0,255,0), thickness=5)
-#	cv2.line(frame3, tuple(rect_grasp[1].astype(int)), tuple(rect_grasp[2].astype(int)), color=(0,0,255), thickness=5)
-#	cv2.line(frame3, tuple(rect_grasp[2].astype(int)), tuple(rect_grasp[3].astype(int)), color=(0,255,0), thickness=5)
-#	cv2.line(frame3, tuple(rect_grasp[3].astype(int)), tuple(rect_grasp[0].astype(int)), color=(0,0,255), thickness=5)
+	cv2.circle(foto,(point_centerx,point_centery),6,(0,250,0),-1)
+	cv2.line(foto, tuple(rect_grasp[0].astype(int)), tuple(rect_grasp[1].astype(int)), color=(0,255,0), thickness=5)
+	cv2.line(foto, tuple(rect_grasp[1].astype(int)), tuple(rect_grasp[2].astype(int)), color=(0,0,255), thickness=5)
+	cv2.line(foto, tuple(rect_grasp[2].astype(int)), tuple(rect_grasp[3].astype(int)), color=(0,255,0), thickness=5)
+	cv2.line(foto, tuple(rect_grasp[3].astype(int)), tuple(rect_grasp[0].astype(int)), color=(0,0,255), thickness=5)
 
 	
 	#coordenadas para dibujar de manera correcta sobre el frame general
@@ -721,13 +721,15 @@ while not rospy.is_shutdown():
 			rospy.sleep(0.5)
 			prediccion_grasp(rct_u.astype(np.int32),model_grasp)
 			box=get_points()
-			
+			print 'caja de puntos grasp ',box
 			cv2.imwrite('rct_u.jpg',rctu)
+			print rctu.shape
 			centro_agarre=centro_grasp(box,punto_preciso_corte,punto_objetivo)
 			(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
 			box[4]=box[4]*-1
 			pose_i = [pxo+0.05, pyo+0.1, z, roll, pitch, yaw]
 			pose = [pxo+0.05, pyo+0.1, z, roll, pitch, yaw]
+			cv2.imwrite('acercamiento.jpg',foto)
 			move(centro_agarre,box[4],inp)
 			cv2.imwrite('frame3.jpg',frame3)
 			########
