@@ -8,6 +8,7 @@ import time
 
 puntos=[]#Contiene los 4 puntos del rectangulo de agarre y el angulo de inclinacion en la ultima posicion del arreglo
 
+
 def drawRectangle(I, h, w, t, gsize=300):
 	del puntos[:] #Para asegurar que esta vacio al momento de insertar los puntos
 	I_temp = I
@@ -62,6 +63,7 @@ def init_model():
     return G
 
 def prediccion_grasp(I,G):
+    timet = time.time()
     gscale=0.4
     imsize = max(I.shape[:2])
     gsize = int(gscale*imsize) # Size of grasp patch
@@ -95,7 +97,9 @@ def prediccion_grasp(I,G):
                 I = drawRectangle(I, patch_Hs[pindex], patch_Ws[pindex], tindex, gsize)
 
     print('displaying image')
+    img_name="grasp_{}.jpg".format(timet)
     cv2.imwrite('grasp.jpg',I)
+    cv2.imwrite('grasp/'+img_name,I)
     print 'type ',type(I)
 
 ##############################################

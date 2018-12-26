@@ -420,7 +420,7 @@ def cvt_box(box):
 	return rect
 
 #Movimiento al punto con angulo definido
-def move(punto,angle):
+def move1(punto,angle):
 	k=0;
 	xdep=0.5
 	ydep=0.8
@@ -467,7 +467,8 @@ def move(punto,angle,nombre):
 
 	(px,py)=pixel_to_baxter(punto,0.3)
 	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
-	mover_baxter('base',[px,py,-0.22],[math.pi,0,angle])
+	mover_baxter('base',[px,py,-0.215],[math.pi,0,angle])
+	rospy.sleep(0.2)
 
 	gripper.close()
 
@@ -684,7 +685,8 @@ while not rospy.is_shutdown():
 
 
 
-	print 'Modos disponible: 1-Busqueda por seleccion, 2-Busqueda automatica'
+	print 'Modos disponible:' 
+	print '1-Busqueda por seleccion, 2-Busqueda automatica, 3-Busqueda Basica'
 	modo=input("Seleccione modo de busqueda ")
 	while(modo!=1 and modo!=2 and modo!=3):
 		modo=raw_input("Seleccione modo de busqueda ")
@@ -704,6 +706,8 @@ while not rospy.is_shutdown():
 		while objetos_solicitados:
 			obs=objetos_solicitados.pop()
 			punto_objetivo=ptos_corte[obs]
+			recorte_sol=recortes[obs]
+			print 'recorte tamano ',recorte_sol.shape
 			#punto_objetivo=puntos[obs]
 			(pxo,pyo)=pixel_to_baxter(punto_objetivo,0.3)
 			mover_baxter('base',[pxo+0.05,pyo+0.1,0.0],[math.pi,0,0])
@@ -724,7 +728,14 @@ while not rospy.is_shutdown():
 			print 'caja de puntos grasp ',box
 			cv2.imwrite('rct_u.jpg',rctu)
 			print rctu.shape
+			size_recorte_p=rctu.shape
+			size_recorte_i=recorte_sol.shape
+			##########Calcular diferencia de pixeles entre los dos recortes
+			dif=(size_recorte_i[1]-size_recorte_p[1],size_recorte_i[0]-size_recorte_p[0])
+			print dif
+			##########
 			centro_agarre=centro_grasp(box,punto_preciso_corte,punto_objetivo)
+			#centro_agarre=centro_grasp(box,punto_preciso_corte,punto_objetivo)
 			(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
 			box[4]=box[4]*-1
 			pose_i = [pxo+0.05, pyo+0.1, z, roll, pitch, yaw]
@@ -784,9 +795,11 @@ while not rospy.is_shutdown():
 
 	if modo==3:
 		copia_puntos=puntos_pre
+		print len(puntos_pre)
 		#Prueba, acercamiento por objeto
 		while copia_puntos:   #se acerca a cada punto donde detecto un objeto el analisis inicial
 			point=copia_puntos.pop()
+			name_obj=nombres.pop()
 			(pointx,pointy)=pixel_to_baxter(point,0.3)
 			mover_baxter('base',[pointx-0.05,pointy+0.05,0.0],[math.pi,0,0])
 			contorno=ucontorno(foto)  #recalcula el contorno y lo retorna
@@ -809,7 +822,7 @@ while not rospy.is_shutdown():
 
 			print ppp
 			print angulo_corregido
-			move(rect[0],angulo_corregido)
+			move(rect[0],angulo_corregido,name_obj)
 
 			#Actualizo posicion inicial
 			pose_i = [x, y, z, roll, pitch, yaw]
