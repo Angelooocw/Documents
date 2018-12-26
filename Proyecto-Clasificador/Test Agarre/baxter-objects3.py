@@ -174,8 +174,8 @@ def ucontorno(image):
 
 		area=w*h
 		#Se limita la zona para ignorar contornos en los bordes
-		if area<=1000:
-		#if area<=1000 or y<300 or x<400 or x>880:
+		#if area<=1000:
+		if area<=1000 or y<300 or x<400 or x>880:
 			continue
 
 		#cv2.rectangle(image, (x,y),(x+w,y+h),(255,0,255),2)
