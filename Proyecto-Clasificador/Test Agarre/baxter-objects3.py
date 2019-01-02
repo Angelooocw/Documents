@@ -163,8 +163,10 @@ def ucontorno(image):
 	centro_garra=(640,400)
 	distancias=[]
 	centros=[]
+	ct=[]
 	ctn=[]
 	(contornos,_) = cv2.findContours(dilated,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+	print 'numero de contornos: ', len(contornos)
 	for c in contornos:
 		x,y,w,h=cv2.boundingRect(c)
 		#Rectangulo de area minima
@@ -467,6 +469,7 @@ def move(punto,angle,nombre):
 
 	(px,py)=pixel_to_baxter(punto,0.3)
 	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
+	mover_baxter('base',[px,py,-0.18],[math.pi,0,angle])
 	mover_baxter('base',[px,py,-0.215],[math.pi,0,angle])
 	rospy.sleep(0.2)
 
@@ -612,7 +615,7 @@ gripper = baxter_interface.Gripper(arm)
 gripper.calibrate()
 # Pose inicial
 x = 0.47
-y = 0.3
+y = 0.1 #0.3
 z = 0.0
 roll = math.pi	#Rotacion x
 pitch = 0.0	#Rotacion y	
@@ -765,8 +768,12 @@ while not rospy.is_shutdown():
 			mover_baxter('base',[pxct+0.05,pyct+0.1,0.0],[math.pi,0,0])
 			cv2.imwrite('acercamiento.jpg',foto)
 			ctn=ucontorno(foto)
+			print 'tamano ctn ',len(ctn)
+			if len(ctn)==0:
+				continue
 			rec_ajustado=urecorte(foto,ctn)
 			rcort=rec_ajustado.pop()
+			cv2.imwrite('rcort.jpg',rcort)
 			rcort=rcort[:,:,:3]
 			punto_preciso_corte=pto_corte_preciso.pop()
 			rospy.sleep(1)
