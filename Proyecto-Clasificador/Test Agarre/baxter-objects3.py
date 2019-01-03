@@ -757,48 +757,48 @@ while not rospy.is_shutdown():
 
 	if modo==2:
 	################Modo automatico, se desplaza a cada recorte y recoge el objeto
-		while recortes:
-			recort=recortes.pop()
-			rec=recort[:,:,:3]
-			n_obj=nombres.pop()
-			#cv2.imwrite('rec.jpg',rec)
-			punto_corte=ptos_corte.pop()
-			#############Prueba acercamiento por recorte para mejorar precision del brazo
-			(pxct,pyct)=pixel_to_baxter(punto_corte,0.3)
-			mover_baxter('base',[pxct+0.05,pyct+0.1,0.0],[math.pi,0,0])
-			cv2.imwrite('acercamiento.jpg',foto)
-			ctn=ucontorno(foto)
-			print 'tamano ctn ',len(ctn)
-			if len(ctn)==0:
-				continue
-			rec_ajustado=urecorte(foto,ctn)
-			rcort=rec_ajustado.pop()
-			cv2.imwrite('rcort.jpg',rcort)
-			rcort=rcort[:,:,:3]
-			punto_preciso_corte=pto_corte_preciso.pop()
-			rospy.sleep(1)
-			prediccion_grasp(rcort.astype(np.int32),model_grasp)
-			box=get_points()
-			centro_agarre=centro_grasp(box,punto_preciso_corte,punto_corte)
-			(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
-			box[4]=box[4]*-1 #Correccion de angulo, ya que la funcion entrega angulo con signo cambiado
-			pose_i = [pxct+0.05, pyct+0.1, z, roll, pitch, yaw]
-			pose = [pxct+0.05, pyct+0.1, z, roll, pitch, yaw]
-			cv2.imwrite('frame3.jpg',frame3)
-			move(centro_agarre,box[4],n_obj)
-			#Actualizo posicion inicial
-			pose_i = [x, y, z, roll, pitch, yaw]
-			pose = [x, y, z, roll, pitch, yaw]
+		jjj=0
+		while jjj<3:
+			print 'cantidad de recortes a procesar: ', len(recortes)
+			while recortes:
+				recort=recortes.pop()
+				rec=recort[:,:,:3]
+				n_obj=nombres.pop()
+				#cv2.imwrite('rec.jpg',rec)
+				punto_corte=ptos_corte.pop()
+				#############Prueba acercamiento por recorte para mejorar precision del brazo
+				(pxct,pyct)=pixel_to_baxter(punto_corte,0.3)
+				mover_baxter('base',[pxct+0.05,pyct+0.1,0.0],[math.pi,0,0])
+				cv2.imwrite('acercamiento.jpg',foto)
+				ctn=ucontorno(foto)
+				print 'tamano ctn ',len(ctn)
+				if len(ctn)==0:
+					mover_baxter('base',[x,y,0],[math.pi,0,0])
+					continue
+				rec_ajustado=urecorte(foto,ctn)
+				rcort=rec_ajustado.pop()
+				cv2.imwrite('rcort.jpg',rcort)
+				rcort=rcort[:,:,:3]
+				punto_preciso_corte=pto_corte_preciso.pop()
+				rospy.sleep(1)
+				prediccion_grasp(rcort.astype(np.int32),model_grasp)
+				box=get_points()
+				centro_agarre=centro_grasp(box,punto_preciso_corte,punto_corte)
+				(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
+				box[4]=box[4]*-1 #Correccion de angulo, ya que la funcion entrega angulo con signo cambiado
+				pose_i = [pxct+0.05, pyct+0.1, z, roll, pitch, yaw]
+				pose = [pxct+0.05, pyct+0.1, z, roll, pitch, yaw]
+				cv2.imwrite('frame3.jpg',frame3)
+				move(centro_agarre,box[4],n_obj)
+				#Actualizo posicion inicial
+				pose_i = [x, y, z, roll, pitch, yaw]
+				pose = [x, y, z, roll, pitch, yaw]
 
-			#############
-			#prediccion_grasp(rec.astype(np.int32),model_grasp)
-			#box=get_points()
-			#print 'caja puntos prueba error ',box
-			#centro_agarre=centro_grasp(box,punto_corte)
-			#(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
-			#box[4]=box[4]*-1 #Correccion de angulo, ya que la funcion entrega angulo con signo cambiado
-			#print "angulo grasp ",box[4]
-			#move(centro_agarre,box[4])
+				#############
+			countours=img_process(frame)
+			recortes=recortes_img(frame,countours)
+			nombres=prediccion_obj(recortes)
+			jjj=jjj+1
 
 	if modo==3:
 		copia_puntos=puntos_pre
