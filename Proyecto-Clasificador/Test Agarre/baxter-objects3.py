@@ -489,8 +489,9 @@ def move(punto,angle,nombre):
 
 		gripper.open()
 
-		mover_baxter('base',[deposito[0],deposito[1],0.0],[math.pi,0,angle])
-		mover_baxter('base',[x,y,0.0],[math.pi,0,0])
+		mover_baxter('base',[deposito[0],deposito[1],0.10],[math.pi,0,angle])
+		mover_baxter('base',[x,y,0.10],[math.pi,0,0])
+		mover_baxter('base',[x,y,0],[math.pi,0,0])
 
 
 def ejecutar_mov(puntos):
@@ -625,11 +626,11 @@ pose_i = [x, y, z, roll, pitch, yaw]
 pose = [x, y, z, roll, pitch, yaw]
 
 cam_calibracion = 0.0025            # 0.0025 pixeles por metro a 1 metro de distancia. Factor de correccion
-cam_x_offset    = -0.045 #-0.01 #0.04              # Correccion de camara por los gripper,
-cam_y_offset    = -0.160  #-0.115  #-0.015     
+cam_x_offset    = 0.04 #-0.045 #-0.01 #0.04              # Correccion de camara por los gripper,
+cam_y_offset    = -0.015 #-0.160  #-0.115  #-0.015     
 resolution      = 1
-width           = 960               # 1280 640  960
-height          = 600               # 800  400  600
+width           = 1280 #960               # 1280 640  960
+height          = 800 #600               # 800  400  600
 	######
 margen_img=50
 tamano_deseado=100
@@ -757,7 +758,10 @@ while not rospy.is_shutdown():
 
 	if modo==2:
 	################Modo automatico, se desplaza a cada recorte y recoge el objeto
-		jjj=0
+		camara_resize=cv2.resize(fps,(1024,600))
+		cv2.imwrite('fps2.jpg',camara_resize)
+		send_image('fps2.jpg')
+		jjj=1
 		while jjj<3:
 			print 'cantidad de recortes a procesar: ', len(recortes)
 			while recortes:
@@ -790,6 +794,9 @@ while not rospy.is_shutdown():
 				pose = [pxct+0.05, pyct+0.1, z, roll, pitch, yaw]
 				cv2.imwrite('frame3.jpg',frame3)
 				move(centro_agarre,box[4],n_obj)
+				##########
+				
+				##########
 				#Actualizo posicion inicial
 				pose_i = [x, y, z, roll, pitch, yaw]
 				pose = [x, y, z, roll, pitch, yaw]
