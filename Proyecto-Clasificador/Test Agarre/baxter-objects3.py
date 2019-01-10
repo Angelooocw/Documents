@@ -38,7 +38,7 @@ def prediccion(file):
 	if respuesta==0:
 		herramienta='Alicate'
 	elif respuesta==1:
-		herramienta='Calculadora'
+		herramienta='Control'
 	elif respuesta==2:
 		herramienta='Cuchillo'
 	elif respuesta==3:
@@ -240,10 +240,10 @@ def urecorte(image,contorno):
 		x,y,w,h=cv2.boundingRect(c)
 		xc,yc=x+w/2,y+h/2
 		global xi,yi
-		yi=y-margen_img+10
-		yf=y+h+margen_img-10
-		xi=x-margen_img+10
-		xf=x+w+margen_img-10
+		yi=y-margen_img
+		yf=y+h+margen_img
+		xi=x-margen_img
+		xf=x+w+margen_img
 		###
 		xcrop,ycrop=xi,yi
 		pto_corte_preciso.append((xcrop,ycrop))
@@ -291,7 +291,7 @@ def info_and_angles(img,contornos,nombres):
 	for c in contornos:
 		x,y,w,h=cv2.boundingRect(c)
 		cv2.rectangle(img, (x,y),(x+w,y+h),(255,0,0),2)
-		cv2.putText(img, nombres[j],(x,y),cv2.FONT_HERSHEY_SIMPLEX,0.8,np.array([0,0,0],dtype=np.uint8).tolist(),1,8)
+		cv2.putText(img, nombres[j],(x,y),cv2.FONT_HERSHEY_SIMPLEX,0.8,np.array([0,0,0],dtype=np.uint8).tolist(),2,8)
 
 		#Rectangulo de area minima
 		rect=cv2.minAreaRect(c)
@@ -459,10 +459,10 @@ def move(punto,angle,nombre):
 	if (nombre=='Alicate' or nombre=='Cuchillo' or nombre=='Destornillador' or nombre=='Llave'):
 		deposito=(0.5470207284933092, 0.7550064358491599)
 	
-	if (nombre=='Calculadora' or nombre=='Gamepad' or nombre=='Mouse'):
+	if (nombre=='Control' or nombre=='Gamepad' or nombre=='Mouse'or nombre=='Reloj'):
 		deposito=(0.31195328392783256, 0.6652463368344972)
 
-	if (nombre=='Martillo' or nombre=='Taladro' or nombre=='Tijera' or nombre=='Reloj'):
+	if (nombre=='Martillo' or nombre=='Taladro' or nombre=='Tijera'):
 		deposito=(0.309293240857769, 0.8451825272761175)
 
 
@@ -579,8 +579,8 @@ def centro_grasp(rect_grasp,xycroppreciso,xycrop):
 
 #cargar modelo entrenado
 longitud, altura = 100,100
-modelo='./modelo/modelo-32b-25e-2000-corregido-rms.h5'
-pesos='./modelo/pesos-32b-25e-2000-corregido-rms.h5'
+modelo=  './modelo/modelo-32b-25e-100p-2000-rms.h5' #'./modelo/modelo-32b-25e-2000-corregido-rms.h5'
+pesos=  './modelo/pesos-32b-25e-100p-2000-rms.h5' #'./modelo/pesos-32b-25e-2000-corregido-rms.h5'
 cnn=load_model(modelo)
 cnn.load_weights(pesos)
 
@@ -632,7 +632,7 @@ resolution      = 1
 width           = 1280 #960               # 1280 640  960
 height          = 800 #600               # 800  400  600
 	######
-margen_img=50
+margen_img=40
 tamano_deseado=100
 puntos_pre=[]
 nombres=[]
@@ -716,7 +716,7 @@ while not rospy.is_shutdown():
 			(pxo,pyo)=pixel_to_baxter(punto_objetivo,0.3)
 			mover_baxter('base',[pxo+0.05,pyo+0.1,0.0],[math.pi,0,0])
 			rospy.sleep(1)
-			cv2.circle(foto,(640,400),6,(255,123,255),-1)
+			#cv2.circle(foto,(640,400),6,(255,123,255),-1)
 			cv2.imwrite('acercamiento.jpg',foto)
 			ctrn=ucontorno(foto)
 			print 'size ucontorno ',len(ctrn)
@@ -850,8 +850,10 @@ while not rospy.is_shutdown():
 
 	imagen_camara=cv2.resize(frame3,(1024,600))
 	#print frame.shape[:2]
-	cv2.imwrite('cam.jpg',imagen_camara)
-	send_image('cam.jpg')
+
+	if modo==1:
+		cv2.imwrite('cam.jpg',imagen_camara)
+		send_image('cam.jpg')
 
 	print 'frame shape',frame.shape
 	cv2.cvtColor(frame,cv2.COLOR_BGRA2BGR)
