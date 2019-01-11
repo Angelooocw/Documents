@@ -851,7 +851,7 @@ while not rospy.is_shutdown():
 	imagen_camara=cv2.resize(frame3,(1024,600))
 	#print frame.shape[:2]
 
-	if modo==1:
+	if modo==1 or modo==3:
 		cv2.imwrite('cam.jpg',imagen_camara)
 		send_image('cam.jpg')
 
