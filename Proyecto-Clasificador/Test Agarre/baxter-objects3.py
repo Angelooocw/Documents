@@ -143,7 +143,7 @@ def img_process(image):
 	for c in contornos:
 		x,y,w,h=cv2.boundingRect(c)
 		area=w*h
-		if area<=1000 or y<300:
+		if area<=5000 or y<300:
 			continue
 		cont_validos.append(c)
 		puntos_pre.append((x,y))
@@ -545,19 +545,20 @@ def centro_grasp(rect_grasp,xycroppreciso,xycrop):
 	xd2,yd2=((puntx2+puntx3)/2,(punty2+punty3)/2)
 	xd,xd2,yd,yd2=int(xd),int(xd2),int(yd),int(yd2)
 	pxmedio,pymedio=int(xd2+xd-puntx2),int(yd2+yd-punty2)
+	pxmediop,pymediop=(xd2+xd-puntx2),(yd2+yd-punty2) ####Puntos mas precisos de agarre
 	puntx1,puntx2,puntx3=int(puntx1),int(puntx2),int(puntx3)
 	punty1,punty2,punty3=int(punty1),int(punty2),int(punty3)
 
 	#coordenadas para dibujar sobre el frame desplazado
-	point_centerx,point_centery=pxmedio+xcrop,pymedio+ycrop
+	point_centerx,point_centery=pxmediop+xcrop,pymediop+ycrop
 	rect_grasp[0][0],rect_grasp[1][0],rect_grasp[2][0],rect_grasp[3][0]=rect_grasp[0][0]+xcrop,rect_grasp[1][0]+xcrop,rect_grasp[2][0]+xcrop,rect_grasp[3][0]+xcrop
 	rect_grasp[0][1],rect_grasp[1][1],rect_grasp[2][1],rect_grasp[3][1]=rect_grasp[0][1]+ycrop,rect_grasp[1][1]+ycrop,rect_grasp[2][1]+ycrop,rect_grasp[3][1]+ycrop
 
-	cv2.circle(foto,(point_centerx,point_centery),6,(0,250,0),-1)
-	cv2.line(foto, tuple(rect_grasp[0].astype(int)), tuple(rect_grasp[1].astype(int)), color=(0,255,0), thickness=5)
-	cv2.line(foto, tuple(rect_grasp[1].astype(int)), tuple(rect_grasp[2].astype(int)), color=(0,0,255), thickness=5)
-	cv2.line(foto, tuple(rect_grasp[2].astype(int)), tuple(rect_grasp[3].astype(int)), color=(0,255,0), thickness=5)
-	cv2.line(foto, tuple(rect_grasp[3].astype(int)), tuple(rect_grasp[0].astype(int)), color=(0,0,255), thickness=5)
+#	cv2.circle(foto,(point_centerx,point_centery),6,(0,250,0),-1)
+#	cv2.line(foto, tuple(rect_grasp[0].astype(int)), tuple(rect_grasp[1].astype(int)), color=(0,255,0), thickness=5)
+#	cv2.line(foto, tuple(rect_grasp[1].astype(int)), tuple(rect_grasp[2].astype(int)), color=(0,0,255), thickness=5)
+#	cv2.line(foto, tuple(rect_grasp[2].astype(int)), tuple(rect_grasp[3].astype(int)), color=(0,255,0), thickness=5)
+#	cv2.line(foto, tuple(rect_grasp[3].astype(int)), tuple(rect_grasp[0].astype(int)), color=(0,0,255), thickness=5)
 
 	
 	#coordenadas para dibujar de manera correcta sobre el frame general
@@ -579,8 +580,8 @@ def centro_grasp(rect_grasp,xycroppreciso,xycrop):
 
 #cargar modelo entrenado
 longitud, altura = 100,100
-modelo=  './modelo/modelo-32b-25e-100p-2000-rms.h5' #'./modelo/modelo-32b-25e-2000-corregido-rms.h5'
-pesos=  './modelo/pesos-32b-25e-100p-2000-rms.h5' #'./modelo/pesos-32b-25e-2000-corregido-rms.h5'
+modelo=  './modelo/modelo-32b-25e-200p-2000-rms.h5' #'./modelo/modelo-32b-25e-2000-corregido-rms.h5'
+pesos=  './modelo/pesos-32b-25e-200p-2000-rms.h5' #'./modelo/pesos-32b-25e-2000-corregido-rms.h5'
 cnn=load_model(modelo)
 cnn.load_weights(pesos)
 
@@ -632,7 +633,7 @@ resolution      = 1
 width           = 1280 #960               # 1280 640  960
 height          = 800 #600               # 800  400  600
 	######
-margen_img=40
+margen_img=30
 tamano_deseado=100
 puntos_pre=[]
 nombres=[]
@@ -714,7 +715,7 @@ while not rospy.is_shutdown():
 			print 'recorte tamano ',recorte_sol.shape
 			#punto_objetivo=puntos[obs]
 			(pxo,pyo)=pixel_to_baxter(punto_objetivo,0.3)
-			mover_baxter('base',[pxo+0.05,pyo+0.1,0.0],[math.pi,0,0])
+			mover_baxter('base',[pxo+0.02,pyo+0.05,0.0],[math.pi,0,0])
 			rospy.sleep(1)
 			#cv2.circle(foto,(640,400),6,(255,123,255),-1)
 			cv2.imwrite('acercamiento.jpg',foto)
@@ -734,16 +735,14 @@ while not rospy.is_shutdown():
 			print rctu.shape
 			size_recorte_p=rctu.shape
 			size_recorte_i=recorte_sol.shape
-			##########Calcular diferencia de pixeles entre los dos recortes
-			dif=(size_recorte_i[1]-size_recorte_p[1],size_recorte_i[0]-size_recorte_p[0])
-			print dif
-			##########
+
 			centro_agarre=centro_grasp(box,punto_preciso_corte,punto_objetivo)
+			print 'contro de agarre ',centro_agarre
 			#centro_agarre=centro_grasp(box,punto_preciso_corte,punto_objetivo)
 			(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
 			box[4]=box[4]*-1
-			pose_i = [pxo+0.05, pyo+0.1, z, roll, pitch, yaw]
-			pose = [pxo+0.05, pyo+0.1, z, roll, pitch, yaw]
+			pose_i = [pxo+0.02, pyo+0.05, z, roll, pitch, yaw]
+			pose = [pxo+0.02, pyo+0.05, z, roll, pitch, yaw]
 			cv2.imwrite('acercamiento.jpg',foto)
 			move(centro_agarre,box[4],inp)
 			cv2.imwrite('frame3.jpg',frame3)
@@ -772,7 +771,7 @@ while not rospy.is_shutdown():
 				punto_corte=ptos_corte.pop()
 				#############Prueba acercamiento por recorte para mejorar precision del brazo
 				(pxct,pyct)=pixel_to_baxter(punto_corte,0.3)
-				mover_baxter('base',[pxct+0.05,pyct+0.1,0.0],[math.pi,0,0])
+				mover_baxter('base',[pxct+0.02,pyct+0.05,0.0],[math.pi,0,0])
 				cv2.imwrite('acercamiento.jpg',foto)
 				ctn=ucontorno(foto)
 				print 'tamano ctn ',len(ctn)
@@ -790,8 +789,8 @@ while not rospy.is_shutdown():
 				centro_agarre=centro_grasp(box,punto_preciso_corte,punto_corte)
 				(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
 				box[4]=box[4]*-1 #Correccion de angulo, ya que la funcion entrega angulo con signo cambiado
-				pose_i = [pxct+0.05, pyct+0.1, z, roll, pitch, yaw]
-				pose = [pxct+0.05, pyct+0.1, z, roll, pitch, yaw]
+				pose_i = [pxct+0.02, pyct+0.05, z, roll, pitch, yaw]
+				pose = [pxct+0.02, pyct+0.05, z, roll, pitch, yaw]
 				cv2.imwrite('frame3.jpg',frame3)
 				move(centro_agarre,box[4],n_obj)
 				##########
