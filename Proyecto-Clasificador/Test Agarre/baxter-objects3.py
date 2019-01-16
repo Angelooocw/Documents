@@ -143,7 +143,7 @@ def img_process(image):
 	for c in contornos:
 		x,y,w,h=cv2.boundingRect(c)
 		area=w*h
-		if area<=5000 or y<300:
+		if area<=6000 or y<300:
 			continue
 		cont_validos.append(c)
 		puntos_pre.append((x,y))
@@ -485,7 +485,7 @@ def move(punto,angle,nombre):
 
 	else:	
 		mover_baxter('base',[deposito[0],deposito[1],0.0],[math.pi,0,angle])
-		mover_baxter('base',[deposito[0],deposito[1],-0.19],[math.pi,0,angle])
+		mover_baxter('base',[deposito[0],deposito[1],-0.17],[math.pi,0,angle])
 
 		gripper.open()
 
@@ -580,8 +580,8 @@ def centro_grasp(rect_grasp,xycroppreciso,xycrop):
 
 #cargar modelo entrenado
 longitud, altura = 100,100
-modelo=  './modelo/modelo-32b-25e-200p-2000-rms.h5' #'./modelo/modelo-32b-25e-2000-corregido-rms.h5'
-pesos=  './modelo/pesos-32b-25e-200p-2000-rms.h5' #'./modelo/pesos-32b-25e-2000-corregido-rms.h5'
+modelo=  './modelo/modelo-32b-25e-100p-2000-rms.h5' #'./modelo/modelo-32b-25e-2000-corregido-rms.h5'
+pesos=  './modelo/pesos-32b-25e-100p-2000-rms.h5' #'./modelo/pesos-32b-25e-2000-corregido-rms.h5'
 cnn=load_model(modelo)
 cnn.load_weights(pesos)
 
