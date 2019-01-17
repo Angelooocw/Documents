@@ -245,8 +245,7 @@ def urecorte(image,contorno):
 		xi=x-margen_img
 		xf=x+w+margen_img
 		###
-		xcrop,ycrop=xi,yi
-		pto_corte_preciso.append((xcrop,ycrop))
+
 		###
 		if yi<0:
 			yi=0
@@ -255,6 +254,10 @@ def urecorte(image,contorno):
 		crop=image[yi:yf,xi:xf]
 		rct.append(crop)
 		cv2.imwrite('cropu.jpg',crop)
+
+	xcrop,ycrop=xi,yi
+	pto_corte_preciso.append((xcrop,ycrop))
+
 	return rct
 
 #Reescala las imagenes recortadas para luego ser pasadas al predictor
@@ -456,13 +459,13 @@ def move(punto,angle,nombre):
 	#pto=punto.pop()
 	#(px,py)=pixel_to_baxter(pto,0.3)
 
-	if (nombre=='Alicate' or nombre=='Cuchillo' or nombre=='Destornillador' or nombre=='Llave'):
+	if (nombre=='Alicate' or nombre=='Cuchillo' or nombre=='Destornillador' or nombre=='Tijera'):
 		deposito=(0.5470207284933092, 0.7550064358491599)
 	
 	if (nombre=='Control' or nombre=='Gamepad' or nombre=='Mouse'or nombre=='Reloj'):
 		deposito=(0.31195328392783256, 0.6652463368344972)
 
-	if (nombre=='Martillo' or nombre=='Taladro' or nombre=='Tijera'):
+	if (nombre=='Martillo' or nombre=='Taladro' or nombre=='Llave'):
 		deposito=(0.309293240857769, 0.8451825272761175)
 
 
@@ -470,7 +473,7 @@ def move(punto,angle,nombre):
 	(px,py)=pixel_to_baxter(punto,0.3)
 	mover_baxter('base',[px,py,0.0],[math.pi,0,angle])
 	mover_baxter('base',[px,py,-0.18],[math.pi,0,angle])
-	mover_baxter('base',[px,py,-0.215],[math.pi,0,angle])
+	mover_baxter('base',[px,py,-0.217],[math.pi,0,angle])
 	rospy.sleep(0.2)
 
 	gripper.close()
@@ -554,6 +557,7 @@ def centro_grasp(rect_grasp,xycroppreciso,xycrop):
 	rect_grasp[0][0],rect_grasp[1][0],rect_grasp[2][0],rect_grasp[3][0]=rect_grasp[0][0]+xcrop,rect_grasp[1][0]+xcrop,rect_grasp[2][0]+xcrop,rect_grasp[3][0]+xcrop
 	rect_grasp[0][1],rect_grasp[1][1],rect_grasp[2][1],rect_grasp[3][1]=rect_grasp[0][1]+ycrop,rect_grasp[1][1]+ycrop,rect_grasp[2][1]+ycrop,rect_grasp[3][1]+ycrop
 
+	print 'centro grasp recorte ',pxmediop,pymediop
 #	cv2.circle(foto,(point_centerx,point_centery),6,(0,250,0),-1)
 #	cv2.line(foto, tuple(rect_grasp[0].astype(int)), tuple(rect_grasp[1].astype(int)), color=(0,255,0), thickness=5)
 #	cv2.line(foto, tuple(rect_grasp[1].astype(int)), tuple(rect_grasp[2].astype(int)), color=(0,0,255), thickness=5)
@@ -713,7 +717,6 @@ while not rospy.is_shutdown():
 			punto_objetivo=ptos_corte[obs]
 			recorte_sol=recortes[obs]
 			print 'recorte tamano ',recorte_sol.shape
-			#punto_objetivo=puntos[obs]
 			(pxo,pyo)=pixel_to_baxter(punto_objetivo,0.3)
 			mover_baxter('base',[pxo+0.02,pyo+0.05,0.0],[math.pi,0,0])
 			rospy.sleep(1)
@@ -732,11 +735,12 @@ while not rospy.is_shutdown():
 			box=get_points()
 			print 'caja de puntos grasp ',box
 			cv2.imwrite('rct_u.jpg',rctu)
-			print rctu.shape
+			print 'rctu shape ',rctu.shape
 			size_recorte_p=rctu.shape
 			size_recorte_i=recorte_sol.shape
 
 			centro_agarre=centro_grasp(box,punto_preciso_corte,punto_objetivo)
+			print 'punto de corte ',punto_preciso_corte
 			print 'contro de agarre ',centro_agarre
 			#centro_agarre=centro_grasp(box,punto_preciso_corte,punto_objetivo)
 			(pointx,pointy)=pixel_to_baxter(centro_agarre,0.3)
@@ -801,6 +805,7 @@ while not rospy.is_shutdown():
 				pose = [x, y, z, roll, pitch, yaw]
 
 				#############
+			mover_baxter('base',[x,y,0.0],[math.pi,0,0])
 			countours=img_process(frame)
 			recortes=recortes_img(frame,countours)
 			nombres=prediccion_obj(recortes)
