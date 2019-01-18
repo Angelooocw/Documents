@@ -553,7 +553,7 @@ def centro_grasp(rect_grasp,xycroppreciso,xycrop):
 	punty1,punty2,punty3=int(punty1),int(punty2),int(punty3)
 
 	#coordenadas para dibujar sobre el frame desplazado
-	point_centerx,point_centery=pxmediop+xcrop,pymediop+ycrop
+	point_centerx,point_centery=pxmedio+xcrop,pymedio+ycrop
 	rect_grasp[0][0],rect_grasp[1][0],rect_grasp[2][0],rect_grasp[3][0]=rect_grasp[0][0]+xcrop,rect_grasp[1][0]+xcrop,rect_grasp[2][0]+xcrop,rect_grasp[3][0]+xcrop
 	rect_grasp[0][1],rect_grasp[1][1],rect_grasp[2][1],rect_grasp[3][1]=rect_grasp[0][1]+ycrop,rect_grasp[1][1]+ycrop,rect_grasp[2][1]+ycrop,rect_grasp[3][1]+ycrop
 
@@ -584,8 +584,8 @@ def centro_grasp(rect_grasp,xycroppreciso,xycrop):
 
 #cargar modelo entrenado
 longitud, altura = 100,100
-modelo=  './modelo/modelo-32b-25e-100p-2000-rms.h5' #'./modelo/modelo-32b-25e-2000-corregido-rms.h5'
-pesos=  './modelo/pesos-32b-25e-100p-2000-rms.h5' #'./modelo/pesos-32b-25e-2000-corregido-rms.h5'
+modelo=  './modelo/modelo-32b-25e-200p-2000-rms.h5' #'./modelo/modelo-32b-25e-2000-corregido-rms.h5'
+pesos=  './modelo/pesos-32b-25e-200p-2000-rms.h5' #'./modelo/pesos-32b-25e-2000-corregido-rms.h5'
 cnn=load_model(modelo)
 cnn.load_weights(pesos)
 
@@ -631,8 +631,8 @@ pose_i = [x, y, z, roll, pitch, yaw]
 pose = [x, y, z, roll, pitch, yaw]
 
 cam_calibracion = 0.0025            # 0.0025 pixeles por metro a 1 metro de distancia. Factor de correccion
-cam_x_offset    = 0.04 #-0.045 #-0.01 #0.04              # Correccion de camara por los gripper,
-cam_y_offset    = -0.015 #-0.160  #-0.115  #-0.015     
+cam_x_offset    = 0.045 #0.04 #-0.045 #-0.01 #0.04              # Correccion de camara por los gripper,
+cam_y_offset    = -0.01 #-0.015 #-0.160  #-0.115  #-0.015     
 resolution      = 1
 width           = 1280 #960               # 1280 640  960
 height          = 800 #600               # 800  400  600
