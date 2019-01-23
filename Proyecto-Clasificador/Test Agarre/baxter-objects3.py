@@ -631,8 +631,8 @@ pose_i = [x, y, z, roll, pitch, yaw]
 pose = [x, y, z, roll, pitch, yaw]
 
 cam_calibracion = 0.0025            # 0.0025 pixeles por metro a 1 metro de distancia. Factor de correccion
-cam_x_offset    = 0.045 #0.04 #-0.045 #-0.01 #0.04              # Correccion de camara por los gripper,
-cam_y_offset    = -0.01 #-0.015 #-0.160  #-0.115  #-0.015     
+cam_x_offset    = 0.045 #0.045 #0.04 #-0.045 #-0.01 #0.04              # Correccion de camara por los gripper,
+cam_y_offset    = -0.02 #-0.01 #-0.015 #-0.160  #-0.115  #-0.015     
 resolution      = 1
 width           = 1280 #960               # 1280 640  960
 height          = 800 #600               # 800  400  600
