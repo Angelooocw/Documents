@@ -12,7 +12,7 @@ print juegos[0]
 print juegos[-1]
 
 def function():
-	print "hola bobos"
+	print "hola mundo!"
 	return 5
 function()
 
